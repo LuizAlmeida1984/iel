@@ -63,7 +63,10 @@ class GeminiEvaluationController extends Controller
 
         $lastError = 'Sem detalhes';
         // Força o uso do cacert.pem específico para validação SSL
-        $requestBuilder = Http::timeout(20)->acceptJson();
+        $requestBuilder = Http::withOptions([
+            'timeout' => 60,
+            'connect_timeout' => 15,
+        ])->acceptJson();
 
         foreach ($this->models as $model) {
             try {
@@ -135,6 +138,280 @@ class GeminiEvaluationController extends Controller
         ], 502);
     }
 
+    public function __invokeGrok(Request $request): JsonResponse
+    {
+        $payload = $request->validate([
+            'mentee_name' => ['required', 'string'],
+            'scores' => ['required', 'array'],
+            'scores.*' => ['required', 'numeric', 'between:1,10'],
+        ]);
+
+        if (array_diff(array_keys($this->categories), array_keys($payload['scores']))) {
+            return response()->json([
+                'message' => 'As pontuações enviadas não contêm todas as áreas esperadas.',
+            ], 422);
+        }
+
+        $apiKey = trim((string) env('GROQ_API_KEY', ''));
+        $systemInstruction = $this->buildSystemInstruction();
+        $prompt = $this->buildPrompt($payload['mentee_name'], $payload['scores']);
+
+        if ($apiKey === '') {
+            return response()->json([
+                'message' => 'Groq não configurado no backend. Defina GROQ_API_KEY no .env do Laravel.',
+            ], 500);
+        }
+
+        if ($systemInstruction === '') {
+            return response()->json([
+                'message' => 'Rubrica não encontrada no backend.',
+            ], 500);
+        }
+
+        $lastError = 'Sem detalhes';
+
+        $requestBuilder = Http::withOptions([
+            'timeout' => 60,
+            'connect_timeout' => 15,
+        ])->acceptJson()->withHeaders([
+            'Authorization' => "Bearer {$apiKey}",
+            'Content-Type' => 'application/json',
+        ]);
+
+        // modelos comuns do Groq (você pode ajustar)
+        $models = [
+            'llama-3.1-8b-instant',
+        ];
+
+        foreach ($models as $model) {
+            try {
+                $response = $requestBuilder->post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    [
+                        'model' => $model,
+                        'messages' => [
+                            [
+                                'role' => 'system',
+                                'content' => $systemInstruction,
+                            ],
+                            [
+                                'role' => 'user',
+                                'content' => $prompt,
+                            ],
+                        ],
+                        'temperature' => 0.2,
+                    ]
+                );
+            } catch (Throwable $exception) {
+                return response()->json([
+                    'message' => 'Falha de conexão do backend com o Groq.',
+                    'details' => $exception->getMessage(),
+                ], 502);
+            }
+
+            if (! $response->successful()) {
+                $lastError = sprintf('[%s] %s', $response->status(), $response->body());
+
+                if (! in_array($response->status(), [404, 429, 503], true)) {
+                    return response()->json([
+                        'message' => "Falha Groq ({$model}).",
+                        'details' => $response->json() ?: $response->body(),
+                    ], $response->status());
+                }
+
+                continue;
+            }
+
+            $responseData = $response->json();
+
+            $analysis = data_get($responseData, 'choices.0.message.content');
+
+            if (!is_string($analysis) || trim($analysis) === '') {
+                return response()->json([
+                    'message' => 'Groq respondeu sem conteúdo de análise.',
+                    'details' => $responseData,
+                ], 502);
+            }
+
+            /**
+             * 1. Remove markdown code block
+             */
+            $clean = preg_replace('/```json|```/', '', $analysis);
+
+            /**
+             * 2. Remove BOM e caracteres invisíveis problemáticos
+             */
+            $clean = trim($clean);
+            $clean = preg_replace('/^\xEF\xBB\xBF/', '', $clean); // BOM UTF-8
+
+            /**
+             * 3. Tenta garantir UTF-8 válido
+             */
+            $clean = mb_convert_encoding($clean, 'UTF-8', 'UTF-8');
+
+            /**
+             * 4. Decode com flags mais permissivas
+             */
+            $decoded = json_decode($clean, true, 512, JSON_INVALID_UTF8_IGNORE);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return response()->json([
+                    'message' => 'Groq retornou JSON inválido.',
+                    'error' => json_last_error_msg(),
+                    'raw' => $analysis,
+                    'clean' => $clean,
+                ], 502);
+            }
+
+            return response()->json([
+                'analysis' => $decoded,
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Groq indisponível após fallback de modelos.',
+            'details' => $lastError,
+        ], 502);
+    }
+
+    /* public function __invoke(Request $request): JsonResponse
+    {
+        $payload = $request->validate([
+            'mentee_name' => ['required', 'string'],
+            'scores' => ['required', 'array'],
+            'scores.*' => ['required', 'numeric', 'between:1,10'],
+        ]);
+
+        if (array_diff(array_keys($this->categories), array_keys($payload['scores']))) {
+            return response()->json([
+                'message' => 'As pontuações enviadas não contêm todas as áreas esperadas.',
+            ], 422);
+        }
+
+        $apiKey = trim((string) env('GROQ_API_KEY', ''));
+
+        if ($apiKey === '') {
+            return response()->json([
+                'message' => 'Groq não configurado no backend. Defina GROQ_API_KEY no .env do Laravel.',
+            ], 500);
+        }
+
+        $systemInstruction = $this->buildSystemInstruction();
+        $prompt = $this->buildPrompt($payload['mentee_name'], $payload['scores']);
+
+        if ($systemInstruction === '') {
+            return response()->json([
+                'message' => 'Rubrica não encontrada no backend.',
+            ], 500);
+        }
+
+        $lastError = 'Sem detalhes';
+
+        $requestBuilder = Http::withToken($apiKey)
+            ->acceptJson()
+            ->timeout(60)
+            ->connectTimeout(15);
+
+        foreach ($this->modelsGroq as $model) {
+            try {
+                $response = $requestBuilder->post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    [
+                        'model' => $model,
+                        'temperature' => 0.2,
+                        'messages' => [
+                            [
+                                'role' => 'system',
+                                'content' => $systemInstruction,
+                            ],
+                            [
+                                'role' => 'user',
+                                'content' => $prompt,
+                            ],
+                        ],
+                    ]
+                );
+            } catch (Throwable $exception) {
+                return response()->json([
+                    'message' => 'Falha de conexão do backend com a Groq.',
+                    'details' => $exception->getMessage(),
+                ], 502);
+            }
+
+            if (! $response->successful()) {
+                $lastError = sprintf('[%s] %s', $response->status(), $response->body());
+
+                if (! in_array($response->status(), [404, 429, 503], true)) {
+                    return response()->json([
+                        'message' => "Falha Groq ({$model}).",
+                        'details' => $response->json() ?: $response->body(),
+                    ], $response->status());
+                }
+
+                continue;
+            }
+
+            $responseData = $response->json();
+
+            $analysis = data_get($responseData, 'choices.0.message.content');
+
+            if (! is_string($analysis) || trim($analysis) === '') {
+                return response()->json([
+                    'message' => 'Groq respondeu sem conteúdo de análise.',
+                    'details' => $responseData,
+                ], 502);
+            }
+
+            //json_decode($analysis, true);
+
+            //if (json_last_error() !== JSON_ERROR_NONE) {
+            //    return response()->json([
+            //        'message' => 'Groq não retornou JSON válido.',
+            //        'analysis' => $analysis,
+            //    ], 502);
+            //}
+
+            $clean = preg_replace('/```json|```/', '', $analysis);
+            $clean = trim($clean);
+
+            // captura todos os objetos JSON separados
+            preg_match_all('/\{(?:[^{}]|(?R))*\}/s', $clean, $matches);
+
+            if (empty($matches[0])) {
+                return response()->json([
+                    'message' => 'Groq não retornou JSON válido.',
+                    'analysis' => $analysis,
+                ], 502);
+            }
+
+            $data = [];
+
+            foreach ($matches[0] as $json) {
+                $decoded = json_decode($json, true);
+
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $data[] = $decoded;
+                }
+            }
+
+            if (empty($data)) {
+                return response()->json([
+                    'message' => 'Nenhum JSON válido foi extraído.',
+                    'analysis' => $analysis,
+                ], 502);
+            }
+
+            return response()->json([
+                'analysis' => $data,
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Groq indisponível após fallback de modelos.',
+            'details' => $lastError,
+        ], 502);
+    } */
+
     private function buildSystemInstruction(): string
     {
         $rubricPath = resource_path('prompts/rubrica-avaliacao.md');
@@ -199,6 +476,14 @@ class GeminiEvaluationController extends Controller
             '- responder apenas com JSON válido, estruturando cada item em campos separados',
             '- não usar Markdown',
             '- não escrever texto antes ou depois do JSON',
+            '- retornar obrigatóriamente o JSON com as chaves: anamnese, comentarios_pilares, area_alavanca, impacto_sistemico, oportunidades, acoes, recursos, temas_proximas_sessoes, perguntas_reflexao, historia_inspiradora, checklist, alertas_bem_estar, networking, pontos_fortes, plano_smart',
+            'Return ONLY valid JSON',
+            'Ensure:',
+            '- All keys are properly comma-separated',
+            '- No trailing commas',
+            '- JSON must be parseable by json_decode',
+            '- Do not stop mid-JSON',
+            '- Do not include markdown or explanations',
         ]);
     }
 }

@@ -1,0 +1,246 @@
+<div class="app-shell">
+  <header class="app-header">
+    <div>
+      <h1>Ascensão • Portal da Mentorada</h1>
+      <p>Roda da Vida Empreendedora 1-4-4-1</p>
+    </div>
+    <button type="button" class="ghost-btn" (click)="newSession()">Nova Sessão</button>
+  </header>
+
+  <main class="layout">
+    <section class="card controls">
+      <h3>1. Identificação</h3>
+      <input
+        type="text"
+        [value]="menteeName()"
+        (input)="updateMenteeName($event)"
+        placeholder="Nome da Mentorada"
+        aria-label="Nome da mentorada"
+      />
+
+      <h3>2. Avaliação</h3>
+      <div class="category-list">
+        @for (category of categories; track category.id) {
+          <div class="category-item">
+            <div class="category-row">
+              <span>{{ category.label }}</span>
+              <span [style.color]="category.color">{{ scores()[category.id] }}</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              [value]="scores()[category.id]"
+              (input)="updateScore(category.id, $event)"
+              [attr.aria-label]="'Pontuação de ' + category.label"
+            />
+          </div>
+        }
+      </div>
+
+      <div *ngIf="status().text" class="status-message" [ngClass]="status().type">
+        {{ status().text }}
+      </div>
+      <button type="button" class="primary-btn" [disabled]="loading()" (click)="handleSave()">
+        {{ loading() ? 'Gerando relatório...' : 'Gerar relatório' }}
+      </button>
+    </section>
+
+    <section class="center-column">
+      <div class="card radar-card">
+        <h3>Visualização Estratégica</h3>
+
+        <svg
+          #radarChart
+          width="400"
+          height="400"
+          viewBox="0 0 350 350"
+          aria-label="Radar de avaliação estratégica"
+        >
+          @for (ring of [2, 4, 6, 8, 10]; track ring) {
+            <circle cx="175" cy="175" [attr.r]="(ring / 10) * 100" fill="none" stroke="#e2e8f0" stroke-width="1" />
+          }
+
+          @for (category of categories; track category.id; let i = $index) {
+            <line
+              x1="175"
+              y1="175"
+              [attr.x2]="axisLine(i).x"
+              [attr.y2]="axisLine(i).y"
+              stroke="#e2e8f0"
+              stroke-width="1"
+            />
+            <text
+              [attr.x]="axisLine(i).labelX"
+              [attr.y]="axisLine(i).labelY"
+              text-anchor="middle"
+              dominant-baseline="middle"
+              class="axis-label"
+            >
+              {{ labelFirstWord(category.label) }}
+            </text>
+          }
+
+          @if (compareScores()) {
+            <polygon
+              [attr.points]="getPoints(compareScores())"
+              fill="rgba(148, 163, 184, 0.08)"
+              stroke="#94a3b8"
+              stroke-width="2"
+              stroke-dasharray="4"
+            />
+          }
+
+          <polygon
+            [attr.points]="getPoints(scores())"
+            fill="rgba(79, 70, 229, 0.15)"
+            stroke="#4f46e5"
+            stroke-width="3"
+            stroke-linejoin="round"
+          />
+
+          @for (category of categories; track category.id; let i = $index) {
+            <circle [attr.cx]="scorePoint(category, i).x" [attr.cy]="scorePoint(category, i).y" r="4" [attr.fill]="category.color" />
+            <rect
+              [attr.x]="scorePoint(category, i).noteX - 8"
+              [attr.y]="scorePoint(category, i).noteY - 6"
+              width="16"
+              height="12"
+              rx="4"
+              fill="white"
+              [attr.stroke]="category.color"
+              stroke-width="1"
+            />
+            <text
+              [attr.x]="scorePoint(category, i).noteX"
+              [attr.y]="scorePoint(category, i).noteY"
+              text-anchor="middle"
+              dominant-baseline="middle"
+              class="point-note"
+              [attr.fill]="category.color"
+            >
+              {{ scores()[category.id] }}
+            </text>
+          }
+        </svg>
+
+        <div class="average-box">
+          <span>{{ average() }}</span>
+          <p>Média Global</p>
+        </div>
+      </div>
+
+      <div class="analysis-card">
+        <div class="analysis-header">
+          <h3>Parecer de Mentoria IA</h3>
+          @if (aiAnalysis()) {
+            <div class="analysis-actions">
+              <button type="button" class="ghost-invert" [disabled]="pdfLoading()" (click)="exportPdf()">
+                {{ pdfLoading() ? 'Gerando PDF...' : 'Gerar PDF' }}
+              </button>
+              <button type="button" class="ghost-invert" (click)="copyToClipboard()">Copiar</button>
+            </div>
+          }
+        </div>
+        <ng-container *ngIf="aiParsed()">
+          <div *ngIf="aiParsed().anamnese">
+            <h4>Anamnese</h4>
+            <blockquote class="anamnese-bloco">
+              <div *ngFor="let frase of aiParsed().anamnese.split(/(?<=[.!?])\s+/)">
+                {{ frase }}
+              </div>
+            </blockquote>
+          </div>
+          <div *ngIf="aiParsed().comentarios_pilares">
+            <h4>Comentários por Pilar</h4>
+            <ul class="comentarios-pilares-lista">
+              <li *ngFor="let key of objectKeys(aiParsed().comentarios_pilares)">
+                <span class="pilar-nome">{{ key }}:</span>
+                <span class="pilar-comentario">{{ aiParsed().comentarios_pilares[key] }}</span>
+              </li>
+            </ul>
+          </div>
+          <div *ngIf="aiParsed().area_alavanca">
+            <h4>Área Alavanca</h4>
+            <p>{{ aiParsed().area_alavanca }}</p>
+          </div>
+          <div *ngIf="aiParsed().impacto_sistemico">
+            <h4>Impacto Sistêmico</h4>
+            <p>{{ aiParsed().impacto_sistemico }}</p>
+          </div>
+          <div *ngIf="aiParsed().oportunidades">
+            <h4>Oportunidades</h4>
+            <ul>
+              <li *ngFor="let item of aiParsed().oportunidades">{{ (typeof item === 'string' ? item : (item | json)) }}</li>
+            </ul>
+          </div>
+          <div *ngIf="aiParsed().acoes">
+            <h4>Ações Práticas</h4>
+            <ol class="acoes-praticas-lista">
+              <li *ngFor="let item of aiParsed().acoes">{{ (typeof item === 'string' ? item : (item | json)) }}</li>
+            </ol>
+          </div>
+          <div *ngIf="aiParsed().recursos">
+            <h4>Recursos e Redes de Apoio</h4>
+            <ul>
+              <li *ngFor="let item of aiParsed().recursos"><a [href]="typeof item === 'string' ? item : ''" target="_blank">{{ (typeof item === 'string' ? item : (item | json)) }}</a></li>
+            </ul>
+          </div>
+          <div *ngIf="aiParsed().temas_proximas_sessoes">
+            <h4>Temas para Próximas Sessões</h4>
+            <ul>
+              <li *ngFor="let item of aiParsed().temas_proximas_sessoes">{{ (typeof item === 'string' ? item : (item | json)) }}</li>
+            </ul>
+          </div>
+          <div *ngIf="aiParsed().perguntas_reflexao">
+            <h4>Perguntas de Reflexão</h4>
+            <ul>
+              <li *ngFor="let item of aiParsed().perguntas_reflexao">{{ (typeof item === 'string' ? item : (item | json)) }}</li>
+            </ul>
+          </div>
+          <div *ngIf="aiParsed().historia_inspiradora">
+            <h4>História Inspiradora</h4>
+            <p>{{ (typeof aiParsed().historia_inspiradora === 'string' ? aiParsed().historia_inspiradora : (aiParsed().historia_inspiradora | json)) }}</p>
+          </div>
+          <div *ngIf="aiParsed().checklist">
+            <h4>Checklist de Próximos Passos</h4>
+            <ul>
+              <li *ngFor="let item of aiParsed().checklist">{{ (typeof item === 'string' ? item : (item | json)) }}</li>
+            </ul>
+          </div>
+          <div *ngIf="aiParsed().alertas_bem_estar">
+            <h4>Alertas de Bem-Estar</h4>
+            <ul>
+              <li *ngFor="let item of aiParsed().alertas_bem_estar">{{ (typeof item === 'string' ? item : (item | json)) }}</li>
+            </ul>
+          </div>
+          <div *ngIf="aiParsed().networking">
+            <h4>Networking</h4>
+            <ul>
+              <li *ngFor="let item of aiParsed().networking">{{ (typeof item === 'string' ? item : (item | json)) }}</li>
+            </ul>
+          </div>
+          <div *ngIf="aiParsed().pontos_fortes">
+            <h4>Pontos Fortes</h4>
+            <ul>
+              <li *ngFor="let item of aiParsed().pontos_fortes">{{ item }}</li>
+            </ul>
+          </div>
+          <div *ngIf="aiParsed().plano_smart">
+            <h4>Plano de Ação SMART</h4>
+            <ul class="plano-smart-lista">
+              <li><span class="smart-label">Específico:</span> <span class="smart-texto">{{ aiParsed().plano_smart.especifico }}</span></li>
+              <li><span class="smart-label">Mensurável:</span> <span class="smart-texto">{{ aiParsed().plano_smart.mensuravel }}</span></li>
+              <li><span class="smart-label">Atingível:</span> <span class="smart-texto">{{ aiParsed().plano_smart.atingivel }}</span></li>
+              <li><span class="smart-label">Relevante:</span> <span class="smart-texto">{{ aiParsed().plano_smart.relevante }}</span></li>
+              <li><span class="smart-label">Temporal:</span> <span class="smart-texto">{{ aiParsed().plano_smart.temporal }}</span></li>
+            </ul>
+          </div>
+        </ng-container>
+        <p *ngIf="!aiParsed()">
+          {{ aiAnalysis() || 'Insira os dados para gerar a análise estratégica.' }}
+        </p>
+      </div>
+    </section>
+  </main>
+</div>
