@@ -99,6 +99,7 @@ export class App {
 
     private readonly appId = this.readRuntimeString('__app_id') || environment.appId || 'default-app-id';
     private readonly backendBaseUrl = 'http://127.0.0.1:8000';
+    //private readonly backendBaseUrl = 'http://2.24.198.67.nip.io';
 
     protected updateMenteeName(event: Event): void {
         const target = event.target as HTMLInputElement;
