@@ -31,7 +31,7 @@
             <div *ngIf="status().text" class="status-message" [ngClass]="status().type">
                 {{ status().text }}
             </div>
-            <button type="button" class="primary-btn" [disabled]="loading()" (click)="handleSave()">
+            <button type="button" class="primary-btn" [disabled]="loading()" (click)="generateReport()">
                 {{ loading() ? 'Gerando relatório...' : 'Gerar relatório' }}
             </button>
         </section>
@@ -84,9 +84,9 @@
 
             <div class="analysis-card">
                 <div class="analysis-header">
-                    <h3>Parecer de Mentoria IA</h3>
+                    <h3>Parecer de Mentoria</h3>
 
-                    @if (aiAnalysis()) {
+                    <!-- @if (aiAnalysis()) {
                     <div class="analysis-actions">
                         <button type="button" class="ghost-invert" [disabled]="pdfLoading()" (click)="exportPdf()">
                             {{ pdfLoading() ? 'Gerando PDF...' : 'Gerar PDF' }}
@@ -96,195 +96,228 @@
                             Copiar
                         </button>
                     </div>
+                    } -->
+
+                    @if (frases()) {
+                        <div class="analysis-actions">
+                            <!-- <button type="button" class="ghost-invert" [disabled]="pdfLoading()" (click)="exportPdf()">
+                                {{ pdfLoading() ? 'Gerando PDF...' : 'Gerar PDF' }}
+                            </button> -->
+
+                            <!-- <button type="button" class="ghost-invert" (click)="copyToClipboard()">
+                                Copiar
+                            </button> -->
+                        </div>
                     }
                 </div>
 
-                <ng-container *ngIf="aiParsed() as data">
+                <ng-container>
+                   <div *ngFor="let item of frases() | keyvalue">
 
-                    <!-- ================= ANAMNESE (OBJETO) ================= -->
-                    <div *ngIf="data.anamnese">
-                        <h4>Anamnese</h4>
+                        <ng-container *ngIf="isArray(item.value); else unico">
+                            <p *ngFor="let sub of item.value" style="margin-bottom: 20px;">
+                                • {{ sub.texto }}
+                            </p>
+                        </ng-container>
 
-                        <ul>
-                            <li *ngFor="let key of objectKeys(data.anamnese)">
-                                <strong>{{ key }}:</strong>
-                                {{ data.anamnese[key] }}
-                            </li>
-                        </ul>
+                        <ng-template #unico>
+                            <p style="margin-bottom: 20px;">
+                                • {{ item.value?.texto }}
+                            </p>
+                        </ng-template>
+
                     </div>
-
-                    <!-- ============ COMENTÁRIOS POR PILAR (OBJETO ANINHADO) ============ -->
-                    <div *ngIf="data.comentarios_pilares">
-                        <h4>Comentários por Pilar</h4>
-
-                        <ul class="comentarios-pilares-lista">
-                            <li *ngFor="let key of objectKeys(data.comentarios_pilares)">
-                                <strong class="pilar-nome">{{ key }}</strong>
-
-                                <div>
-                                    <div>
-                                        <strong>Fortes:</strong>
-                                        {{ data.comentarios_pilares[key]?.pontos_fortes }}
-                                    </div>
-
-                                    <div>
-                                        <strong>Atenção:</strong>
-                                        {{ data.comentarios_pilares[key]?.pontos_atencao }}
-                                    </div>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- ================= ÁREA ALAVANCA (OBJETO) ================= -->
-                    <div *ngIf="data.area_alavanca">
-                        <h4>Área Alavanca</h4>
-
-                        <p>{{ data.area_alavanca.justificativa }}</p>
-
-                        <small>
-                            Candidata: {{ data.area_alavanca.candidata }}
-                        </small>
-                    </div>
-
-                    <!-- ================= IMPACTO SISTÊMICO (STRING) ================= -->
-                    <div *ngIf="data.impacto_sistemico">
-                        <h4>Impacto Sistêmico</h4>
-                        <p>{{ data.impacto_sistemico }}</p>
-                    </div>
-
-                    <!-- ================= OPORTUNIDADES (ARRAY) ================= -->
-                    <div *ngIf="data.oportunidades">
-                        <h4>Oportunidades</h4>
-
-                        <ul>
-                            <li *ngFor="let item of data.oportunidades">
-                                {{ item }}
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- ================= AÇÕES (ARRAY) ================= -->
-                    <div *ngIf="data.acoes">
-                        <h4>Ações Práticas</h4>
-
-                        <ol>
-                            <li *ngFor="let item of data.acoes">
-                                {{ item }}
-                            </li>
-                        </ol>
-                    </div>
-
-                    <!-- ================= RECURSOS (ARRAY OU STRING) ================= -->
-                    <div *ngIf="data.recursos">
-                        <h4>Recursos e Redes de Apoio</h4>
-
-                        <ul>
-                            <li *ngFor="let item of data.recursos">
-
-                                <ng-container *ngIf="item && item.startsWith?.('http'); else texto">
-                                    <a [href]="item" target="_blank">{{ item }}</a>
-                                </ng-container>
-
-                                <ng-template #texto>
-                                    {{ item }}
-                                </ng-template>
-
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- ================= TEMAS ================= -->
-                    <div *ngIf="data.temas_proximas_sessoes">
-                        <h4>Temas para Próximas Sessões</h4>
-
-                        <ul>
-                            <li *ngFor="let item of data.temas_proximas_sessoes">
-                                {{ item }}
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- ================= PERGUNTAS ================= -->
-                    <div *ngIf="data.perguntas_reflexao">
-                        <h4>Perguntas de Reflexão</h4>
-
-                        <ul>
-                            <li *ngFor="let item of data.perguntas_reflexao">
-                                {{ item }}
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- ================= HISTÓRIA ================= -->
-                    <div *ngIf="data.historia_inspiradora">
-                        <h4>História Inspiradora</h4>
-                        <p>{{ data.historia_inspiradora }}</p>
-                    </div>
-
-                    <!-- ================= CHECKLIST ================= -->
-                    <div *ngIf="data.checklist">
-                        <h4>Checklist de Próximos Passos</h4>
-
-                        <ul>
-                            <li *ngFor="let item of data.checklist">
-                                {{ item }}
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- ================= ALERTAS ================= -->
-                    <div *ngIf="data.alertas_bem_estar">
-                        <h4>Alertas de Bem-Estar</h4>
-                        <p>{{ data.alertas_bem_estar }}</p>
-                    </div>
-
-                    <!-- ================= NETWORKING ================= -->
-                    <div *ngIf="data.networking">
-                        <h4>Networking</h4>
-                        <p>{{ data.networking }}</p>
-                    </div>
-
-                    <!-- ================= PONTOS FORTES ================= -->
-                    <div *ngIf="data.pontos_fortes">
-                        <h4>Pontos Fortes</h4>
-
-                        <ul>
-                            <li *ngFor="let item of data.pontos_fortes">
-                                {{ item }}
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- ================= PLANO SMART ================= -->
-                    <div *ngIf="data.plano_smart">
-                        <h4>Plano de Ação SMART</h4>
-
-                        <p><strong>Objetivo:</strong> {{ data.plano_smart.objetivo }}</p>
-
-                        <h5>Metas</h5>
-                        <ul>
-                            <li *ngFor="let meta of data.plano_smart.metas">
-                                {{ meta }}
-                            </li>
-                        </ul>
-
-                        <p><strong>Prazo:</strong> {{ data.plano_smart.prazo }}</p>
-
-                        <h5>Indicadores</h5>
-                        <ul>
-                            <li *ngFor="let ind of data.plano_smart.indicadores">
-                                {{ ind }}
-                            </li>
-                        </ul>
-                    </div>
-
                 </ng-container>
 
-                <!-- ================= FALLBACK ================= -->
-                <p *ngIf="!aiParsed()">
-                    {{ aiAnalysis() || 'Insira os dados para gerar a análise estratégica.' }}
-                </p>
+                <div *ngIf="false">
+                    <ng-container *ngIf="aiParsed() as data">
+
+                        <!-- ================= ANAMNESE (OBJETO) ================= -->
+                        <div *ngIf="data.anamnese">
+                            <h4>Anamnese</h4>
+
+                            <ul>
+                                <li *ngFor="let key of objectKeys(data.anamnese)">
+                                    <strong>{{ key }}:</strong>
+                                    {{ data.anamnese[key] }}
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- ============ COMENTÁRIOS POR PILAR (OBJETO ANINHADO) ============ -->
+                        <div *ngIf="data.comentarios_pilares">
+                            <h4>Comentários por Pilar</h4>
+
+                            <ul class="comentarios-pilares-lista">
+                                <li *ngFor="let key of objectKeys(data.comentarios_pilares)">
+                                    <strong class="pilar-nome">{{ key }}</strong>
+
+                                    <div>
+                                        <div>
+                                            <strong>Fortes:</strong>
+                                            {{ data.comentarios_pilares[key]?.pontos_fortes }}
+                                        </div>
+
+                                        <div>
+                                            <strong>Atenção:</strong>
+                                            {{ data.comentarios_pilares[key]?.pontos_atencao }}
+                                        </div>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- ================= ÁREA ALAVANCA (OBJETO) ================= -->
+                        <div *ngIf="data.area_alavanca">
+                            <h4>Área Alavanca</h4>
+
+                            <p>{{ data.area_alavanca.justificativa }}</p>
+
+                            <small>
+                                Candidata: {{ data.area_alavanca.candidata }}
+                            </small>
+                        </div>
+
+                        <!-- ================= IMPACTO SISTÊMICO (STRING) ================= -->
+                        <div *ngIf="data.impacto_sistemico">
+                            <h4>Impacto Sistêmico</h4>
+                            <p>{{ data.impacto_sistemico }}</p>
+                        </div>
+
+                        <!-- ================= OPORTUNIDADES (ARRAY) ================= -->
+                        <div *ngIf="data.oportunidades">
+                            <h4>Oportunidades</h4>
+
+                            <ul>
+                                <li *ngFor="let item of data.oportunidades">
+                                    {{ item }}
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- ================= AÇÕES (ARRAY) ================= -->
+                        <div *ngIf="data.acoes">
+                            <h4>Ações Práticas</h4>
+
+                            <ol>
+                                <li *ngFor="let item of data.acoes">
+                                    {{ item }}
+                                </li>
+                            </ol>
+                        </div>
+
+                        <!-- ================= RECURSOS (ARRAY OU STRING) ================= -->
+                        <div *ngIf="data.recursos">
+                            <h4>Recursos e Redes de Apoio</h4>
+
+                            <ul>
+                                <li *ngFor="let item of data.recursos">
+
+                                    <ng-container *ngIf="item && item.startsWith?.('http'); else texto">
+                                        <a [href]="item" target="_blank">{{ item }}</a>
+                                    </ng-container>
+
+                                    <ng-template #texto>
+                                        {{ item }}
+                                    </ng-template>
+
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- ================= TEMAS ================= -->
+                        <div *ngIf="data.temas_proximas_sessoes">
+                            <h4>Temas para Próximas Sessões</h4>
+
+                            <ul>
+                                <li *ngFor="let item of data.temas_proximas_sessoes">
+                                    {{ item }}
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- ================= PERGUNTAS ================= -->
+                        <div *ngIf="data.perguntas_reflexao">
+                            <h4>Perguntas de Reflexão</h4>
+
+                            <ul>
+                                <li *ngFor="let item of data.perguntas_reflexao">
+                                    {{ item }}
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- ================= HISTÓRIA ================= -->
+                        <div *ngIf="data.historia_inspiradora">
+                            <h4>História Inspiradora</h4>
+                            <p>{{ data.historia_inspiradora }}</p>
+                        </div>
+
+                        <!-- ================= CHECKLIST ================= -->
+                        <div *ngIf="data.checklist">
+                            <h4>Checklist de Próximos Passos</h4>
+
+                            <ul>
+                                <li *ngFor="let item of data.checklist">
+                                    {{ item }}
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- ================= ALERTAS ================= -->
+                        <div *ngIf="data.alertas_bem_estar">
+                            <h4>Alertas de Bem-Estar</h4>
+                            <p>{{ data.alertas_bem_estar }}</p>
+                        </div>
+
+                        <!-- ================= NETWORKING ================= -->
+                        <div *ngIf="data.networking">
+                            <h4>Networking</h4>
+                            <p>{{ data.networking }}</p>
+                        </div>
+
+                        <!-- ================= PONTOS FORTES ================= -->
+                        <div *ngIf="data.pontos_fortes">
+                            <h4>Pontos Fortes</h4>
+
+                            <ul>
+                                <li *ngFor="let item of data.pontos_fortes">
+                                    {{ item }}
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- ================= PLANO SMART ================= -->
+                        <div *ngIf="data.plano_smart">
+                            <h4>Plano de Ação SMART</h4>
+
+                            <p><strong>Objetivo:</strong> {{ data.plano_smart.objetivo }}</p>
+
+                            <h5>Metas</h5>
+                            <ul>
+                                <li *ngFor="let meta of data.plano_smart.metas">
+                                    {{ meta }}
+                                </li>
+                            </ul>
+
+                            <p><strong>Prazo:</strong> {{ data.plano_smart.prazo }}</p>
+
+                            <h5>Indicadores</h5>
+                            <ul>
+                                <li *ngFor="let ind of data.plano_smart.indicadores">
+                                    {{ ind }}
+                                </li>
+                            </ul>
+                        </div>
+
+                    </ng-container>
+
+                    <!-- ================= FALLBACK ================= -->
+                    <p *ngIf="!aiParsed()">
+                        {{ aiAnalysis() || 'Insira os dados para gerar a análise estratégica.' }}
+                    </p>
+                </div>
+
             </div>
 
         </section>

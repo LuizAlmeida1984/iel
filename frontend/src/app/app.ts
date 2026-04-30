@@ -7,7 +7,7 @@ import {
     computed,
     signal,
 } from '@angular/core';
-import { NgClass, NgIf, NgFor, JsonPipe } from '@angular/common';
+import { NgClass, NgIf, NgFor, JsonPipe, KeyValuePipe } from '@angular/common';
 import type { jsPDF } from 'jspdf';
 import { environment } from '../environments/environment';
 declare const __app_id: string | undefined;
@@ -54,10 +54,12 @@ function createInitialScores(): ScoreMap {
     styleUrl: './app.scss',
     changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: true,
-    imports: [NgClass, NgIf, NgFor, JsonPipe],
+    imports: [NgClass, NgIf, NgFor, JsonPipe, KeyValuePipe],
 })
 export class App {
     @ViewChild('radarChart') private readonly radarChart?: ElementRef<SVGSVGElement>;
+
+    frases = signal<any[]>([]);
 
     protected readonly categories = CATEGORIES;
     protected readonly menteeName = signal('');
@@ -267,6 +269,7 @@ export class App {
         this.aiParsed.set(null);
         this.menteeName.set('');
         this.status.set({ type: '', text: '' });
+        this.frases.set([]);
     }
 
     protected setComparison(scores: ScoreMap): void {
@@ -928,5 +931,45 @@ export class App {
 
     public objectKeys(obj: object): string[] {
         return obj ? Object.keys(obj) : [];
+    }
+
+    async generateReport() {
+
+        const menteeName = this.menteeName().trim();
+
+        if (!menteeName) {
+            this.status.set({ type: 'error', text: 'Insira o nome da mentorada.' });
+            return;
+        }
+
+        let response = null;
+
+        try {
+            response = await fetch(`${this.backendBaseUrl}/api/response-simulator`, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    mentee_name: this.menteeName().trim(),
+                    scores: this.scores(),
+                }),
+            });
+
+            if (!response.ok) {
+                this.status.set({ type: 'error', text: `Erro do servidor: ${response.status}` });
+            }
+
+            const data = await response.json();
+
+            this.frases.set(data) ;
+        } catch {
+            throw new Error('Falha de rede ao consultar o backend');
+        }
+    }
+
+    isArray(value: any): boolean {
+        return Array.isArray(value);
     }
 }
