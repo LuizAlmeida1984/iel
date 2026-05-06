@@ -32,21 +32,52 @@ class Controller
             "equilibrio" => 1.2
         ];
 
+        $mapAreas = [
+            'estrategia' => 'Estratégia',
+            'processos' => 'Processos',
+            'marketing' => 'Marketing',
+            'vendas' => 'Vendas',
+            'financas' => 'Finanças',
+            'equipe' => 'Equipe',
+            'mindset' => 'Mindset',
+            'equilibrio' => 'Equilíbrio',
+        ];
+
+        $mapLabels = [
+            'estrategia' => 'Estratégia e visão',
+            'processos' => 'Processos e operação',
+            'marketing' => 'Marketing e posicionamento',
+            'vendas' => 'Vendas e faturamento',
+            'financas' => 'Finanças e lucratividade',
+            'equipe' => 'Liderança e equipe',
+            'mindset' => 'Mindset e resiliência',
+            'equilibrio' => 'Equilíbrio vida-trabalho',
+        ];
+
+
         $deficiencia = [];
         $scoreAlavanca = [];
+        $frasesMontadas = [];
 
         $data = $request->all();
 
         foreach ($data['scores'] as $area => $score) {
             $deficiencia[$area] = 10 - $score;
             $scoreAlavanca[$area] =  round($deficiencia[$area] * $impacto[$area] * $pesoEstrategico[$area], 1);
+
         }
+
+        $frasesMontadas['scoreAlavancaMedia'] = $scoreAlavanca;
+
+        $menorValor = min($data['scores']);
+        $menorIndice = array_search($menorValor, $data['scores']);
+        $nomeAreaMenor = $mapAreas[$menorIndice] ?? null;
+        $areaIdMenor = Area::where('nome', $nomeAreaMenor)->first();
 
         $maiorValor = max($scoreAlavanca);
         $maiorIndice = array_search($maiorValor, $scoreAlavanca);
-        $areaId = Area::whereRaw('LOWER(nome) = ?', [strtolower($maiorIndice)])->first();
-
-        $frasesMontadas = [];
+        $nomeAreaMaior = $mapAreas[$maiorIndice] ?? null;
+        $areaId = Area::where('nome', $nomeAreaMaior)->first();
 
         if ($areaId) {
             $frases = Frase::where('area_id', $areaId->id)->get();
@@ -56,15 +87,20 @@ class Controller
                 // frases tipo Base, impacto e direcionamento, vai mostrar todas
 
                 if ($tipo == 'base' || $tipo == 'impacto' || $tipo == 'direcionamentos') {
-                    $frasesMontadas[$tipo] = $frases;
+                    $frasesMontadas['frases'][$tipo] = $frases;
                     continue;
                 }
 
-                $frasesMontadas[$tipo] = $frases->random();
+                $frasesMontadas['frases'][$tipo] = $frases->random();
             }
+
+            //$frasesMontadas['scoreAlavancaArea'] = $areaId;
+            //$frasesMontadas['menorNotaArea'] = $areaIdMenor;
+            $frasesMontadas['scoreAlavancaArea'] = $mapLabels[$maiorIndice];
+            $frasesMontadas['menorNotaArea'] = $mapLabels[$menorIndice];
+            $frasesMontadas['menorNota'] = $menorValor;
+            $frasesMontadas['tabelaScoreAlavanca'] = $menorValor;
         }
-
-
 
         return $frasesMontadas;
         //return response()->json($frasesAgrupadas);

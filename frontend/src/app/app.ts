@@ -59,7 +59,14 @@ function createInitialScores(): ScoreMap {
 export class App {
     @ViewChild('radarChart') private readonly radarChart?: ElementRef<SVGSVGElement>;
 
-    frases = signal<any[]>([]);
+    frases = signal<any>([]);
+    ordemFrases = [
+        'aberturas',
+        'base',
+        'impacto',
+        'direcionamentos',
+        'conclusoes'
+    ];
 
     protected readonly categories = CATEGORIES;
     protected readonly menteeName = signal('');
@@ -113,6 +120,10 @@ export class App {
             ...currentScores,
             [categoryId]: Number.isNaN(value) ? 1 : value,
         }));
+    }
+
+    compareFn = (a: any, b: any): number => {
+        return this.ordemFrases.indexOf(a.key) - this.ordemFrases.indexOf(b.key);
     }
 
     /* protected async handleSave(): Promise<void> {
@@ -414,16 +425,29 @@ export class App {
         }
     } */
 
-    protected async exportPdf(): Promise<void> {
-        const analysis = this.aiParsed();
+    protected checkPageBreak(doc: any, y: number): number {
+            const pageHeight = doc.internal.pageSize.height || 297;
 
-        if (!analysis) {
+            if (y > pageHeight - 20) {
+                doc.addPage();
+                return 20; // topo da nova página
+            }
+
+            return y;
+        }
+
+    protected async exportPdf(): Promise<void> {
+
+        const frases = this.frases();
+
+        if (!frases) {
             this.status.set({ type: 'error', text: 'Gere o parecer antes de exportar o PDF.' });
             return;
         }
 
         this.pdfLoading.set(true);
         this.status.set({ type: 'info', text: 'Montando PDF para impressão...' });
+
 
         try {
             const { jsPDF } = await import('jspdf');
@@ -467,124 +491,87 @@ export class App {
             documentPdf.setFont('helvetica', 'normal');
             documentPdf.setFontSize(10);
 
-            // ================= ANAMNESE (OBJETO) =================
-            if (analysis.anamnese) {
-                documentPdf.setFont('helvetica', 'bold');
-                documentPdf.text('Anamnese:', 14, y);
-                y += 6;
+            // ================= FRASES =================
+            if (frases) {
 
                 documentPdf.setFont('helvetica', 'normal');
 
-                Object.entries(analysis.anamnese).forEach(([key, value]) => {
-                    const line = `${key}: ${value}`;
-                    const wrapped = documentPdf.splitTextToSize(line, 180);
-                    documentPdf.text(wrapped, 14, y);
-                    y += wrapped.length * 6;
-                });
+                // ================= RESUMO =================
+                if (frases.scoreAlavancaArea && frases.menorNotaArea) {
 
-                y += 3;
-            }
+                    const texto1 = `• Nesse contexto, foi identificada como área alavanca prioritária: ${frases.scoreAlavancaArea}`;
 
-            // ================= COMENTÁRIOS PILARES =================
-            if (analysis.comentarios_pilares) {
-                documentPdf.setFont('helvetica', 'bold');
-                documentPdf.text('Comentários por Pilar:', 14, y);
-                y += 6;
+                    const texto2 = `• Embora a área de ${frases.menorNotaArea} apresente maior nível de criticidade ${frases.menorNota}, a área de ${frases.scoreAlavancaArea} foi priorizada por representar um ponto de intervenção mais viável e com maior capacidade de gerar impacto sistêmico no curto prazo. A atuação sobre essa dimensão tende a destravar outras áreas do negócio, permitindo ganhos estruturais mais rápidos e sustentáveis.`;
 
-                Object.entries(analysis.comentarios_pilares).forEach(([pilar, data]: any) => {
-                    documentPdf.setFont('helvetica', 'bold');
-                    documentPdf.text(pilar, 14, y);
-                    y += 5;
+                    [texto1, texto2].forEach(texto => {
+                        const wrapped = documentPdf.splitTextToSize(texto, 180);
 
-                    documentPdf.setFont('helvetica', 'normal');
-
-                    const fortes = `Fortes: ${data?.pontos_fortes || ''}`;
-                    const atencao = `Atenção: ${data?.pontos_atencao || ''}`;
-
-                    [fortes, atencao].forEach(text => {
-                        const wrapped = documentPdf.splitTextToSize(text, 180);
-                        documentPdf.text(wrapped, 16, y);
+                        y = this.checkPageBreak(documentPdf, y + (wrapped.length * 2));
+                        documentPdf.text(wrapped, 14, y);
                         y += wrapped.length * 6;
+                        y += 2;
                     });
+                }
 
-                    y += 2;
+                // ================= CONFIG =================;
+
+                const titulos: any = {
+                    base: 'Diagnóstico:',
+                    impacto: 'Impacto Sistêmico:',
+                    direcionamentos: 'Direcionamento Estratégico:',
+                    conclusoes: 'Conclusão:'
+                    // 'aberturas' propositalmente sem título
+                };
+
+                // ================= ORDENA =================
+                const entries = Object.entries(frases.frases || {})
+                    .sort(([a], [b]) => this.ordemFrases.indexOf(a) - this.ordemFrases.indexOf(b));
+
+                // ================= FRASES =================
+                entries.forEach(([key, value]: any) => {
+
+                    // ---- TÍTULO ----
+                    if (titulos[key]) {
+                        documentPdf.setFont('helvetica', 'bold');
+
+                        const titulo = titulos[key];
+                        const wrappedTitle = documentPdf.splitTextToSize(titulo, 180);
+
+                        y = this.checkPageBreak(documentPdf, y + (wrappedTitle.length * 3));
+                        documentPdf.text(wrappedTitle, 14, y);
+                        y += wrappedTitle.length * 7;
+
+                        y += 2;
+
+                        documentPdf.setFont('helvetica', 'normal');
+                    }
+
+                    // ---- CONTEÚDO ----
+                    if (Array.isArray(value)) {
+
+                        value.forEach((sub: any) => {
+                            const line = `• ${sub.texto}`;
+                            const wrapped = documentPdf.splitTextToSize(line, 180);
+
+                            y = this.checkPageBreak(documentPdf, y + (wrapped.length * 2));
+                            documentPdf.text(wrapped, 14, y);
+                            y += wrapped.length * 6;
+                            y += 2;
+                        });
+
+                    } else {
+
+                        const line = `• ${value?.texto}`;
+                        const wrapped = documentPdf.splitTextToSize(line, 180);
+
+                        documentPdf.text(wrapped, 14, y);
+                        y += wrapped.length * 6;
+                        y += 2;
+                    }
+
+                    // espaço entre blocos
+                    y += 3;
                 });
-            }
-
-            // ================= ÁREA ALAVANCA =================
-            if (analysis.area_alavanca) {
-                documentPdf.setFont('helvetica', 'bold');
-                documentPdf.text('Área Alavanca:', 14, y);
-                y += 6;
-
-                documentPdf.setFont('helvetica', 'normal');
-
-                const text = analysis.area_alavanca.justificativa || '';
-                const wrapped = documentPdf.splitTextToSize(text, 180);
-                documentPdf.text(wrapped, 14, y);
-                y += wrapped.length * 6;
-            }
-
-            // ================= OPORTUNIDADES =================
-            if (Array.isArray(analysis.oportunidades)) {
-                y += 3;
-                documentPdf.setFont('helvetica', 'bold');
-                documentPdf.text('Oportunidades:', 14, y);
-                y += 6;
-
-                documentPdf.setFont('helvetica', 'normal');
-
-                analysis.oportunidades.forEach((item: string, i: number) => {
-                    const wrapped = documentPdf.splitTextToSize(`${i + 1}. ${item}`, 180);
-                    documentPdf.text(wrapped, 14, y);
-                    y += wrapped.length * 6;
-                });
-            }
-
-            // ================= AÇÕES =================
-            if (Array.isArray(analysis.acoes)) {
-                y += 3;
-                documentPdf.setFont('helvetica', 'bold');
-                documentPdf.text('Ações Práticas:', 14, y);
-                y += 6;
-
-                documentPdf.setFont('helvetica', 'normal');
-
-                analysis.acoes.forEach((item: string, i: number) => {
-                    const wrapped = documentPdf.splitTextToSize(`${i + 1}. ${item}`, 180);
-                    documentPdf.text(wrapped, 14, y);
-                    y += wrapped.length * 6;
-                });
-            }
-
-            // ================= CHECKLIST =================
-            if (Array.isArray(analysis.checklist)) {
-                y += 3;
-                documentPdf.setFont('helvetica', 'bold');
-                documentPdf.text('Checklist:', 14, y);
-                y += 6;
-
-                documentPdf.setFont('helvetica', 'normal');
-
-                analysis.checklist.forEach((item: string, i: number) => {
-                    const wrapped = documentPdf.splitTextToSize(`${i + 1}. ${item}`, 180);
-                    documentPdf.text(wrapped, 14, y);
-                    y += wrapped.length * 6;
-                });
-            }
-
-            // ================= HISTÓRIA =================
-            if (analysis.historia_inspiradora) {
-                y += 3;
-                documentPdf.setFont('helvetica', 'bold');
-                documentPdf.text('História Inspiradora:', 14, y);
-                y += 6;
-
-                documentPdf.setFont('helvetica', 'normal');
-
-                const wrapped = documentPdf.splitTextToSize(analysis.historia_inspiradora, 180);
-                documentPdf.text(wrapped, 14, y);
-                y += wrapped.length * 6;
             }
 
             // ================= FINAL =================
@@ -602,6 +589,7 @@ export class App {
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Nao foi possivel gerar o PDF.';
             this.status.set({ type: 'error', text: message });
+            console.log(error);
         } finally {
             this.pdfLoading.set(false);
         }

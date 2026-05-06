@@ -86,7 +86,7 @@
                 <div class="analysis-header">
                     <h3>Parecer de Mentoria</h3>
 
-                    <!-- @if (aiAnalysis()) {
+                    @if (aiAnalysis()) {
                     <div class="analysis-actions">
                         <button type="button" class="ghost-invert" [disabled]="pdfLoading()" (click)="exportPdf()">
                             {{ pdfLoading() ? 'Gerando PDF...' : 'Gerar PDF' }}
@@ -96,13 +96,13 @@
                             Copiar
                         </button>
                     </div>
-                    } -->
+                    }
 
                     @if (frases()) {
                         <div class="analysis-actions">
-                            <!-- <button type="button" class="ghost-invert" [disabled]="pdfLoading()" (click)="exportPdf()">
+                            <button type="button" class="ghost-invert" [disabled]="pdfLoading()" (click)="exportPdf()">
                                 {{ pdfLoading() ? 'Gerando PDF...' : 'Gerar PDF' }}
-                            </button> -->
+                            </button>
 
                             <!-- <button type="button" class="ghost-invert" (click)="copyToClipboard()">
                                 Copiar
@@ -112,7 +112,29 @@
                 </div>
 
                 <ng-container>
-                   <div *ngFor="let item of frases() | keyvalue">
+                    <div *ngIf="frases()?.scoreAlavancaArea && frases()?.menorNotaArea">
+                        <p style="margin-bottom: 20px;">
+                            • Nesse contexto, foi identificada como área alavanca prioritária: {{ frases()?.scoreAlavancaArea }}
+                        </p>
+                        <p style="margin-bottom: 20px;">
+                            • Embora a área de {{ frases()?.menorNotaArea }} apresente maior nível de criticidade
+                            {{ frases()?.menorNota }}, a área de {{ frases()?.scoreAlavancaArea }}
+                            foi priorizada por representar um ponto de intervenção mais viável e com maior capacidade de gerar impacto sistêmico
+                            no curto prazo. A atuação sobre essa dimensão tende a destravar outras áreas do negócio, permitindo ganhos estruturais
+                            mais rápidos e sustentáveis.
+                        </p>
+                    </div>
+
+                    <div *ngFor="let item of frases()?.frases | keyvalue: compareFn">
+
+                        @switch (item.key) {
+                            @case ('abertura') {}
+                            @case ('base') { <h4><u>Diagnóstico:</u></h4> }
+                            @case ('impacto') { <h4><u>Impacto Sistêmico:</u></h4> }
+                            @case ('direcionamentos') { <h4><u>Direcionamento Estratégico:</u></h4> }
+                            @case ('conclusoes') { <h4><u>Conclusão:</u></h4> }
+                        }
+
 
                         <ng-container *ngIf="isArray(item.value); else unico">
                             <p *ngFor="let sub of item.value" style="margin-bottom: 20px;">

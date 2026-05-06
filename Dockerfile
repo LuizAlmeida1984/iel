@@ -47,13 +47,13 @@ COPY backend/docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 RUN nginx -t
 
 
-nodaemon=true
+#nodaemon=true
 
-[program:php-fpm]
-command=php-fpm
+#[program:php-fpm]
+#command=php-fpm
 
-[program:nginx]
-command=nginx -g "daemon off;"
+#[program:nginx]
+#command=nginx -g "daemon off;"
 
 # Entrypoint para rodar php-fpm e nginx juntos e garantir que o PID não cause problemas
 COPY backend/docker/entrypoint.sh /entrypoint.sh
