@@ -572,6 +572,13 @@ export class App {
                     // espaço entre blocos
                     y += 3;
                 });
+
+                const text = '• Esta análise foi gerada com apoio de Inteligência Artificial e possui caráter auxiliar. As informações apresentadas não substituem a avaliação de um especialista e não devem ser consideradas como verdade absoluta ou utilizadas isoladamente para tomada de decisão.';
+                const wrapped = documentPdf.splitTextToSize(text, 180);
+
+                documentPdf.text(wrapped, 14, y);
+                y += wrapped.length * 6;
+                y += 2;
             }
 
             // ================= FINAL =================
