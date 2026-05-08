@@ -501,7 +501,8 @@ export class App {
 
                     const texto1 = `• Nesse contexto, foi identificada como área alavanca prioritária: ${frases.scoreAlavancaArea}`;
 
-                    const texto2 = `• Embora a área de ${frases.menorNotaArea} apresente maior nível de criticidade ${frases.menorNota}, a área de ${frases.scoreAlavancaArea} foi priorizada por representar um ponto de intervenção mais viável e com maior capacidade de gerar impacto sistêmico no curto prazo. A atuação sobre essa dimensão tende a destravar outras áreas do negócio, permitindo ganhos estruturais mais rápidos e sustentáveis.`;
+                    //const texto2 = `• Embora a área de ${frases.menorNotaArea} apresente maior nível de criticidade ${frases.menorNota}, a área de ${frases.scoreAlavancaArea} foi priorizada por representar um ponto de intervenção mais viável e com maior capacidade de gerar impacto sistêmico no curto prazo. A atuação sobre essa dimensão tende a destravar outras áreas do negócio, permitindo ganhos estruturais mais rápidos e sustentáveis.`;
+                    const texto2 = `• ${frases.explicacao}`;
 
                     [texto1, texto2].forEach(texto => {
                         const wrapped = documentPdf.splitTextToSize(texto, 180);
@@ -944,7 +945,7 @@ export class App {
             response = await fetch(`${this.backendBaseUrl}/api/response-simulator`, {
                 method: 'POST',
                 headers: {
-                    Accept: 'application/json',
+                    Accept: '*/*',
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
