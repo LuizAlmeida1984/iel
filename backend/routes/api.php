@@ -11,3 +11,4 @@ Route::options('/groq/evaluate', fn () => response()->noContent());
 Route::post('/groq/evaluate', [GeminiEvaluationController::class, '__invokeGrok']);
 
 Route::post('/response-simulator', [Controller::class, 'responseSimulator']);
+    

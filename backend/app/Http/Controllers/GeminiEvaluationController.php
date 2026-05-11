@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Throwable;
+use GuzzleHttp\Client;
+
 
 class GeminiEvaluationController extends Controller
 {
@@ -45,9 +47,12 @@ class GeminiEvaluationController extends Controller
             ], 422);
         }
 
-        $apiKey = trim((string) env('GEMINI_API_KEY', ''));
+        $apiKey = env('GEMINI_API_KEY', '');
+
         $systemInstruction = $this->buildSystemInstruction();
         $prompt = $this->buildPrompt($payload['mentee_name'], $payload['scores']);
+
+        #dd($prompt, $apiKey);
 
         if ($apiKey === '') {
             return response()->json([
@@ -61,6 +66,7 @@ class GeminiEvaluationController extends Controller
             ], 500);
         }
 
+        /*
         $lastError = 'Sem detalhes';
         // Força o uso do cacert.pem específico para validação SSL
         $requestBuilder = Http::withOptions([
@@ -136,10 +142,51 @@ class GeminiEvaluationController extends Controller
             'message' => 'Gemini indisponível após fallback de modelos.',
             'details' => $lastError,
         ], 502);
+        */
+
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
+        $data = [
+            "contents" => [
+                [
+                    "parts" => [
+                        [
+                            "text" => $prompt
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+
+        $client = new Client(['verify' => false, 'timeout' => 60, 'connect_timeout' => 15  ]);
+
+        $response = $client->post($url, [
+            'headers' => [
+                'Content-Type' => 'application/json',
+                'X-goog-api-key' => $apiKey,
+            ],
+            'json' => $data
+        ]);
+
+        #echo $response->getBody();
+
+        $data = json_decode($response->getBody(), true);
+        #dd($data);
+        $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+        #dd($text);
+        if (! $text) {
+            return response()->json(['error' => 'Resposta inválida da API de IA.'], 502);
+        }
+
+        #dd(response()->json(['analysis' => $text]));
+        return response()->json(['analysis' => $text]);         
     }
 
     public function __invokeGrok(Request $request): JsonResponse
     {
+
+        #dd($request);
+
         $payload = $request->validate([
             'mentee_name' => ['required', 'string'],
             'scores' => ['required', 'array'],
@@ -155,6 +202,8 @@ class GeminiEvaluationController extends Controller
         $apiKey = trim((string) env('GROQ_API_KEY', ''));
         $systemInstruction = $this->buildSystemInstruction();
         $prompt = $this->buildPrompt($payload['mentee_name'], $payload['scores']);
+
+        #dd( $prompt );
 
         if ($apiKey === '') {
             return response()->json([

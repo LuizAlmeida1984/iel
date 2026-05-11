@@ -121,7 +121,7 @@
                         </p>
                     </div>
 
-                    <div *ngFor="let item of frases()?.frases | keyvalue: compareFn">
+                    <div *ngFor="let item of frases() | keyvalue: compareFn">
 
                         @switch (item.key) {
                             @case ('abertura') {}

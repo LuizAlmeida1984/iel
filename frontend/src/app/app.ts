@@ -105,8 +105,8 @@ export class App {
     });
 
     private readonly appId = this.readRuntimeString('__app_id') || environment.appId || 'default-app-id';
-    //private readonly backendBaseUrl = 'http://127.0.0.1:8000';
-    private readonly backendBaseUrl = 'http://2.24.198.67.nip.io';
+    private readonly backendBaseUrl = 'http://127.0.0.1:8000';
+    //private readonly backendBaseUrl = 'http://2.24.198.67.nip.io';
 
     protected updateMenteeName(event: Event): void {
         const target = event.target as HTMLInputElement;
@@ -688,8 +688,8 @@ export class App {
         let response: Response;
 
         try {
-            //response = await fetch(`${this.backendBaseUrl}/api/gemini/evaluate`, {
-            response = await fetch(`${this.backendBaseUrl}/api/groq/evaluate`, {
+            response = await fetch(`${this.backendBaseUrl}/api/gemini/evaluate`, {
+            //response = await fetch(`${this.backendBaseUrl}/api/groq/evaluate`, {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',
@@ -712,6 +712,7 @@ export class App {
             throw new Error(typeof message === 'string' ? message : 'Falha ao consultar o backend Laravel.');
         }
 
+        console.log('analysis 715', responseData);
         const analysis = responseData.analysis;
 
         if (typeof analysis === 'string') {
@@ -942,7 +943,20 @@ export class App {
         let response = null;
 
         try {
-            response = await fetch(`${this.backendBaseUrl}/api/response-simulator`, {
+            // response = await fetch(`${this.backendBaseUrl}/api/response-simulator`, {
+            //     method: 'POST',
+            //     headers: {
+            //         Accept: '*/*',
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({
+            //         mentee_name: this.menteeName().trim(),
+            //         scores: this.scores(),
+            //     }),
+            // });
+
+            response = await fetch(`${this.backendBaseUrl}/api/gemini/evaluate`, {
+            //response = await fetch(`${this.backendBaseUrl}/api/groq/evaluate`, {
                 method: 'POST',
                 headers: {
                     Accept: '*/*',
@@ -960,8 +974,11 @@ export class App {
 
             const data = await response.json();
 
-            this.frases.set(data) ;
-        } catch {
+            console.log(data);
+            console.log('data.frases', JSON.parse(data.analysis));    
+            this.frases.set( JSON.parse(data.analysis) ) ;
+        } catch (error) {
+            console.error('Erro ao chamar o backend:', error);
             throw new Error('Falha de rede ao consultar o backend');
         }
     }
