@@ -974,9 +974,13 @@ export class App {
 
             const data = await response.json();
 
-            console.log(data);
-            console.log('data.frases', JSON.parse(data.analysis));    
-            this.frases.set( JSON.parse(data.analysis) ) ;
+            //console.log(data);
+            //console.log('data.frases',data.analysis);    
+            //this.frases.set( JSON.parse(data.analysis) ) ;
+            this.frases.set( data.analysis ) ;
+
+            //console.log(this.frases(), this.aiParsed());
+            
         } catch (error) {
             console.error('Erro ao chamar o backend:', error);
             throw new Error('Falha de rede ao consultar o backend');
@@ -986,4 +990,15 @@ export class App {
     isArray(value: any): boolean {
         return Array.isArray(value);
     }
+
+    isObject(value: any): boolean {
+        return typeof value === 'object' && value !== null && !Array.isArray(value);
+    }
+
+    logValue(value: any): boolean {
+        console.log('Value:', value);
+        return true; // Retorna true para garantir que o *ngIf continue funcionando
+    }
+                                    
+
 }

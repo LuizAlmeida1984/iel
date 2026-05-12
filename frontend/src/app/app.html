@@ -124,23 +124,51 @@
                     <div *ngFor="let item of frases() | keyvalue: compareFn">
 
                         @switch (item.key) {
-                            @case ('abertura') {}
-                            @case ('base') { <h4><u>Diagnóstico:</u></h4> }
-                            @case ('impacto') { <h4><u>Impacto Sistêmico:</u></h4> }
-                            @case ('direcionamentos') { <h4><u>Direcionamento Estratégico:</u></h4> }
-                            @case ('conclusoes') { <h4><u>Conclusão:</u></h4> }
+                            @case ('comentarios_pilares') {
+                                <h4><u>Comentários e Pilares:</u></h4>
+                                <p *ngFor="let sub of item.value" style="margin-bottom: 20px;">
+                                    <!-- {{ logValue(sub) }} -->
+                                        • {{ sub.key }}                                                              
+                                </p>
+                            }
+                            @case ('area_alavanca') { <h4><u>Area Alavanca:</u></h4> }
+                            @case ('impacto_sistemico') { <h4><u>Impacto Sistêmico:</u></h4> }
+                            @case ('acoes') { <h4><u>Ações:</u></h4> }
+                            @case ('recursos') { <h4><u>Recursos:</u></h4> }
+                            @case ('temas_proximas_sessoes') { <h4><u>Temas de proximas sessões:</u></h4> }
+                            @case ('perguntas_reflexao') { <h4><u>Perguntas de Reflexão:</u></h4> }
+                            @case ('historia_inspiradora') { <h4><u>História Inspiradora:</u></h4> }
+                            @case ('checklist') { <h4><u>Checklist de Próximos Passos:</u></h4> }
+                            @case ('alertas_bem_estar') { <h4><u>Alertas de Bem-Estar:</u></h4> }
+                            @case ('networking') { <h4><u>Networking:</u></h4> }
+                            @case ('pontos_fortes') { <h4><u>Pontos Fortes:</u></h4> }
+                            @case ('plano_smart') { <h4><u>Plano de Ação SMART:</u></h4> }  
                         }
 
-
-                        <ng-container *ngIf="isArray(item.value); else unico">
-                            <p *ngFor="let sub of item.value" style="margin-bottom: 20px;">
-                                • {{ sub.texto }}
-                            </p>
+                        <ng-container *ngIf="isArray(item.value) && !isObject(item.value);">
+                            <!-- <p *ngFor="let sub of item.value" style="margin-bottom: 20px;">
+                                • {{ sub }}
+                            </p>-->
+                            <div *ngFor="let sub of item.value" style="margin-bottom: 20px;">
+                                 <!-- {{ logValue(item.value) }} -->
+                                <p *ngIf="isObject(sub);" style="margin-bottom: 20px;">
+                                    @if(item.key === 'acoes') {
+                                        • {{ sub.acao }} : Descrição: {{ sub.descricao }} - Exemplo: {{ sub.exemplo }}
+                                    }@else if( item.key === 'plano_smart' ) {
+                                        • {{ sub }} : {{ sub.value }}
+                                    }@else{
+                                        • {{ sub.key }} : {{ sub.value }}
+                                    }
+                                </p>
+                                <p *ngIf="!isObject(sub);" style="margin-bottom: 20px;">
+                                    • {{ sub }}
+                                </p>                                                     
+                            </div>
                         </ng-container>
-
-                        <ng-template #unico>
+                        <ng-template *ngIf="!isArray(item.value);">
+                            {{ logValue(item.value) }}
                             <p style="margin-bottom: 20px;">
-                                • {{ item.value?.texto }}
+                                • {{ item }}
                             </p>
                         </ng-template>
 

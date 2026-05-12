@@ -66,84 +66,6 @@ class GeminiEvaluationController extends Controller
             ], 500);
         }
 
-        /*
-        $lastError = 'Sem detalhes';
-        // Força o uso do cacert.pem específico para validação SSL
-        $requestBuilder = Http::withOptions([
-            'timeout' => 60,
-            'connect_timeout' => 15,
-        ])->acceptJson();
-
-        foreach ($this->models as $model) {
-            try {
-                $response = $requestBuilder
-                    ->post(
-                        "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}",
-                        [
-                            'contents' => [
-                                [
-                                    'parts' => [
-                                        ['text' => $prompt],
-                                    ],
-                                ],
-                            ],
-                            'systemInstruction' => [
-                                'parts' => [
-                                    ['text' => $systemInstruction],
-                                ],
-                            ],
-                        ],
-                    );
-            } catch (Throwable $exception) {
-                return response()->json([
-                    'message' => 'Falha de conexão do backend com o Gemini.',
-                    'details' => $exception->getMessage(),
-                ], 502);
-            }
-
-            if (! $response->successful()) {
-                $lastError = sprintf('[%s] %s', $response->status(), $response->body());
-
-                if (! in_array($response->status(), [404, 429, 503], true)) {
-                    return response()->json([
-                        'message' => "Falha Gemini ({$model}).",
-                        'details' => $response->json() ?: $response->body(),
-                    ], $response->status());
-                }
-
-                continue;
-            }
-
-            $responseData = $response->json();
-            $analysis = data_get($responseData, 'candidates.0.content.parts.0.text');
-
-            if (! is_string($analysis) || trim($analysis) === '') {
-                return response()->json([
-                    'message' => 'Gemini respondeu sem conteúdo de análise.',
-                    'details' => $responseData,
-                ], 502);
-            }
-
-            json_decode($analysis, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                return response()->json([
-                    'message' => 'Gemini não retornou JSON válido.',
-                    'analysis' => $analysis,
-                ], 502);
-            }
-
-            return response()->json([
-                'analysis' => $analysis,
-            ]);
-        }
-
-        return response()->json([
-            'message' => 'Gemini indisponível após fallback de modelos.',
-            'details' => $lastError,
-        ], 502);
-        */
-
         $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
         $data = [
             "contents" => [
@@ -156,7 +78,6 @@ class GeminiEvaluationController extends Controller
                 ]
             ]
         ];
-
 
         $client = new Client(['verify' => false, 'timeout' => 60, 'connect_timeout' => 15  ]);
 
@@ -173,13 +94,70 @@ class GeminiEvaluationController extends Controller
         $data = json_decode($response->getBody(), true);
         #dd($data);
         $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-        #dd($text);
+        
         if (! $text) {
             return response()->json(['error' => 'Resposta inválida da API de IA.'], 502);
         }
 
+        $responseArray = json_decode($text, true);
+
+        #dd($responseArray);
+
+        $responseArray["comentarios_pilares"][] = ["key"=>"Estratégia e visão", "value"=>$responseArray["comentarios_pilares"]["Estratégia e visão"]];
+        unset($responseArray["comentarios_pilares"]["Estratégia e visão"]);
+
+        $responseArray["comentarios_pilares"][] = ["key"=>"Processos e operação", "value"=>$responseArray["comentarios_pilares"]["Processos e operação"]];
+        unset($responseArray["comentarios_pilares"]["Processos e operação"]);
+
+        $responseArray["comentarios_pilares"][] = ["key"=>"Marketing e posicionamento", "value"=>$responseArray["comentarios_pilares"]["Marketing e posicionamento"]];
+        unset($responseArray["comentarios_pilares"]["Marketing e posicionamento"]);
+
+        $responseArray["comentarios_pilares"][] = ["key"=>"Vendas e faturamento", "value"=>$responseArray["comentarios_pilares"]["Vendas e faturamento"]];
+        unset($responseArray["comentarios_pilares"]["Vendas e faturamento"]);
+
+        $responseArray["comentarios_pilares"][] = ["key"=>"Finanças e lucratividade", "value"=>$responseArray["comentarios_pilares"]["Finanças e lucratividade"]];
+        unset($responseArray["comentarios_pilares"]["Finanças e lucratividade"]);
+
+        $responseArray["comentarios_pilares"][] = ["key"=>"Liderança e equipe", "value"=>$responseArray["comentarios_pilares"]["Liderança e equipe"]];
+        unset($responseArray["comentarios_pilares"]["Liderança e equipe"]);
+
+        $responseArray["comentarios_pilares"][] = ["key"=>"Mindset e resiliência", "value"=>$responseArray["comentarios_pilares"]["Mindset e resiliência"]];
+        unset($responseArray["comentarios_pilares"]["Mindset e resiliência"]);
+
+        $responseArray["comentarios_pilares"][] = ["key"=>"Equilíbrio vida-trabalho", "value"=>$responseArray["comentarios_pilares"]["Equilíbrio vida-trabalho"]];
+        unset($responseArray["comentarios_pilares"]["Equilíbrio vida-trabalho"]);        
+
+        if(isset($responseArray["plano_smart"]["alcancavel"])) {
+            $responseArray["plano_smart"][] = ["key"=>"alcancavel", "value"=>$responseArray["plano_smart"]["alcancavel"]];
+            unset($responseArray["plano_smart"]["alcancavel"]);
+        }
+
+        if(isset($responseArray["plano_smart"]["especifico"])) {
+            $responseArray["plano_smart"][] = ["key"=>"especifico", "value"=>$responseArray["plano_smart"]["especifico"]];
+            unset($responseArray["plano_smart"]["especifico"]);
+        }
+
+        if(isset($responseArray["plano_smart"]["mensuravel"])) {
+            $responseArray["plano_smart"][] = ["key"=>"mensuravel", "value"=>$responseArray["plano_smart"]["mensuravel"]];
+            unset($responseArray["plano_smart"]["mensuravel"]);
+        }
+
+        if(isset($responseArray["plano_smart"]["prazo"])) {
+            $responseArray["plano_smart"][] = ["key"=>"prazo", "value"=>$responseArray["plano_smart"]["prazo"]];
+            unset($responseArray["plano_smart"]["prazo"]);
+        }
+
+        if(isset($responseArray["plano_smart"]["relevante"])) {
+            $responseArray["plano_smart"][] = ["key"=>"relevante", "value"=>$responseArray["plano_smart"]["relevante"]];
+            unset($responseArray["plano_smart"]["relevante"]);
+        }
+
+        #dd($responseArray);
+        #dd($text);
+        #dd(json_encode($responseArray)  );
+
         #dd(response()->json(['analysis' => $text]));
-        return response()->json(['analysis' => $text]);         
+        return response()->json(['analysis' => $responseArray]);         
     }
 
     public function __invokeGrok(Request $request): JsonResponse
@@ -504,7 +482,7 @@ class GeminiEvaluationController extends Controller
             'Tarefa: interpretar as notas da Roda da Vida com base exclusivamente na rubrica carregada.',
             'Scores informados: ' . json_encode($normalizedScores, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'Objetivo:',
-            '- realizar uma anamnese detalhada, levantando possíveis causas, histórico e contexto para os resultados apresentados',
+            // '- realizar uma anamnese detalhada, levantando possíveis causas, histórico e contexto para os resultados apresentados',
             '- comentar individualmente cada pilar, destacando pontos fortes e pontos de atenção',
             '- identificar a principal Area Alavanca',
             '- explicar o impacto sistêmico da área prioritária',
@@ -525,7 +503,8 @@ class GeminiEvaluationController extends Controller
             '- responder apenas com JSON válido, estruturando cada item em campos separados',
             '- não usar Markdown',
             '- não escrever texto antes ou depois do JSON',
-            '- retornar obrigatóriamente o JSON com as chaves: anamnese, comentarios_pilares, area_alavanca, impacto_sistemico, oportunidades, acoes, recursos, temas_proximas_sessoes, perguntas_reflexao, historia_inspiradora, checklist, alertas_bem_estar, networking, pontos_fortes, plano_smart',
+            // '- retornar obrigatóriamente o JSON com as chaves: anamnese, comentarios_pilares, area_alavanca, impacto_sistemico, oportunidades, acoes, recursos, temas_proximas_sessoes, perguntas_reflexao, historia_inspiradora, checklist, alertas_bem_estar, networking, pontos_fortes, plano_smart',
+            '- retornar obrigatóriamente o JSON com as chaves: comentarios_pilares, area_alavanca, impacto_sistemico, oportunidades, acoes, recursos, temas_proximas_sessoes, perguntas_reflexao, historia_inspiradora, checklist, alertas_bem_estar, networking, pontos_fortes, plano_smart',
             'Return ONLY valid JSON',
             'Ensure:',
             '- All keys are properly comma-separated',
