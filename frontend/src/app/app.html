@@ -126,51 +126,138 @@
                         @switch (item.key) {
                             @case ('comentarios_pilares') {
                                 <h4><u>Comentários e Pilares:</u></h4>
-                                <p *ngFor="let sub of item.value" style="margin-bottom: 20px;">
-                                    <!-- {{ logValue(sub) }} -->
-                                        • {{ sub.key }}                                                              
-                                </p>
+                                 @for (sub of normalize(item.value); track $index) {
+                                    <div style="margin-bottom: 20px;">
+                                        <p>• {{ sub?.key }}</p>
+                                        <p>• {{ sub?.value }}</p>
+                                    </div>
+                                }
                             }
-                            @case ('area_alavanca') { <h4><u>Area Alavanca:</u></h4> }
-                            @case ('impacto_sistemico') { <h4><u>Impacto Sistêmico:</u></h4> }
-                            @case ('acoes') { <h4><u>Ações:</u></h4> }
-                            @case ('recursos') { <h4><u>Recursos:</u></h4> }
-                            @case ('temas_proximas_sessoes') { <h4><u>Temas de proximas sessões:</u></h4> }
-                            @case ('perguntas_reflexao') { <h4><u>Perguntas de Reflexão:</u></h4> }
-                            @case ('historia_inspiradora') { <h4><u>História Inspiradora:</u></h4> }
-                            @case ('checklist') { <h4><u>Checklist de Próximos Passos:</u></h4> }
-                            @case ('alertas_bem_estar') { <h4><u>Alertas de Bem-Estar:</u></h4> }
-                            @case ('networking') { <h4><u>Networking:</u></h4> }
-                            @case ('pontos_fortes') { <h4><u>Pontos Fortes:</u></h4> }
-                            @case ('plano_smart') { <h4><u>Plano de Ação SMART:</u></h4> }  
+                            @case ('area_alavanca') {
+                                <h4><u>Area Alavanca:</u></h4>
+                                <p>• {{ item?.value }}</p>
+                            }
+                            @case ('impacto_sistemico') {
+                                <h4><u>Impacto Sistêmico:</u></h4>
+                                <p>• {{ item?.value }}</p>
+                            }
+                            @case ('acoes') {
+                                <h4><u>Ações:</u></h4>
+                                @for (sub of normalize(item.value); track $index) {
+                                    @if (isObject(sub)) {
+                                        <p>• <strong>{{ sub?.acao || sub?.titulo }}</strong></p>
+                                        <p>• {{ sub?.dica || sub?.descricao }}</p>
+                                        <p *ngIf="sub?.exemplo">• {{ sub?.exemplo }}</p>
+                                    } @else {
+                                        <p>• {{ sub }}</p>
+                                    }
+                                }
+                            }
+                            @case ('recursos') {
+                                <h4><u>Recursos:</u></h4>
+                                @for (sub of normalize(item.value); track $index) {
+                                    <div style="margin-bottom: 20px;">
+                                        <p>• {{ sub }}</p>
+                                    </div>
+                                }
+                            }
+                            @case ('temas_proximas_sessoes') {
+                                <h4><u>Temas de proximas sessões:</u></h4>
+                                @for (sub of normalize(item.value); track $index) {
+                                    <div style="margin-bottom: 20px;">
+                                        <p>• {{ sub }}</p>
+                                    </div>
+                                }
+                            }
+                            @case ('perguntas_reflexao') {
+                                <h4><u>Perguntas de Reflexão:</u></h4>
+                                @for (sub of normalize(item.value); track $index) {
+                                    <div style="margin-bottom: 20px;">
+                                        <p>• {{ sub }}</p>
+                                    </div>
+                                }
+                            }
+                            @case ('historia_inspiradora') {
+                                <h4><u>História Inspiradora:</u></h4>
+                                <p>• {{ item?.value }}</p>
+                            }
+                            @case ('checklist') {
+                                <h4><u>Checklist de Próximos Passos:</u></h4>
+                                @for (sub of normalize(item.value); track $index) {
+                                    <div style="margin-bottom: 20px;">
+                                        <p>• {{ sub }}</p>
+                                    </div>
+                                }
+                            }
+                            @case ('alertas_bem_estar') {
+                                <h4><u>Alertas de Bem-Estar:</u></h4>
+                                @for (sub of normalize(item.value); track $index) {
+                                    <div style="margin-bottom: 20px;">
+                                        <p>• {{ sub }}</p>
+                                    </div>
+                                }
+                            }
+                            @case ('networking') {
+                                <h4><u>Networking:</u></h4>
+                                @for (sub of normalize(item.value); track $index) {
+                                    <div style="margin-bottom: 20px;">
+                                        <p>• {{ sub }}</p>
+                                    </div>
+                                }
+                            }
+                            @case ('pontos_fortes') {
+                                <h4><u>Pontos Fortes:</u></h4>
+                                @for (sub of normalize(item.value); track $index) {
+                                    <div style="margin-bottom: 20px;">
+                                        <p>• {{ sub }}</p>
+                                    </div>
+                                }
+                            }
+                            @case ('plano_smart') {
+                                <h4><u>Plano de Ação SMART:</u></h4>
+                                @for (sub of normalize(item.value); track $index) {
+                                    <div style="margin-bottom: 20px;">
+                                        <div style="margin-bottom: 20px;">
+                                        <p>• <strong>{{ sub?.key }}</strong></p>
+                                        <p>• {{ sub?.value }}</p>
+                                    </div>
+                                    </div>
+                                }
+                            }
                         }
 
-                        <ng-container *ngIf="isArray(item.value) && !isObject(item.value);">
-                            <!-- <p *ngFor="let sub of item.value" style="margin-bottom: 20px;">
+                        <!-- <ng-container *ngIf="isArray(item.value) && !isObject(item.value);">
+                            <p *ngFor="let sub of item.value" style="margin-bottom: 20px;">
                                 • {{ sub }}
-                            </p>-->
+                            </p>
                             <div *ngFor="let sub of item.value" style="margin-bottom: 20px;">
-                                 <!-- {{ logValue(item.value) }} -->
-                                <p *ngIf="isObject(sub);" style="margin-bottom: 20px;">
-                                    @if(item.key === 'acoes') {
-                                        • {{ sub.acao }} : Descrição: {{ sub.descricao }} - Exemplo: {{ sub.exemplo }}
-                                    }@else if( item.key === 'plano_smart' ) {
-                                        • {{ sub }} : {{ sub.value }}
-                                    }@else{
-                                        • {{ sub.key }} : {{ sub.value }}
-                                    }
-                                </p>
+                                {{ logValue(sub.value) }}
+
+                                    <p *ngIf="isObject(sub);" style="margin-bottom: 20px;">
+                                        @if(item.key === 'acoes') {
+                                            <span *ngFor="let i of sub?.value">
+                                                {{ logValue(i ) }}
+                                                • {{ i }} : Descrição: {{ i.descricao }} - Exemplo: {{ sub.exemplo }}
+                                            </span>
+                                        }@else if( item.key === 'plano_smart' ) {
+                                            • {{ sub }} : {{ sub.value }}
+                                        }@else{
+                                            • {{ sub.key }} : {{ sub.value }}
+                                        }
+                                    </p>
+
                                 <p *ngIf="!isObject(sub);" style="margin-bottom: 20px;">
-                                    • {{ sub }}
-                                </p>                                                     
+                                     • {{ sub }}
+                                </p>
                             </div>
-                        </ng-container>
-                        <ng-template *ngIf="!isArray(item.value);">
+                        </ng-container> -->
+
+                        <!-- <ng-template *ngIf="!isArray(item.value);">
                             {{ logValue(item.value) }}
                             <p style="margin-bottom: 20px;">
                                 • {{ item }}
                             </p>
-                        </ng-template>
+                        </ng-template> -->
 
                     </div>
                 </ng-container>
