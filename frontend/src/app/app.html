@@ -112,7 +112,8 @@
                 </div>
 
                 <ng-container>
-                    <div *ngIf="frases()?.scoreAlavancaArea && frases()?.menorNotaArea">
+                    <p>{{ frases() }}</p>
+                    <!-- <div *ngIf="frases()?.scoreAlavancaArea && frases()?.menorNotaArea">
                         <p style="margin-bottom: 20px;">
                             • Nesse contexto, foi identificada como área alavanca prioritária: {{ frases()?.scoreAlavancaArea }}
                         </p>
@@ -226,40 +227,7 @@
                             }
                         }
 
-                        <!-- <ng-container *ngIf="isArray(item.value) && !isObject(item.value);">
-                            <p *ngFor="let sub of item.value" style="margin-bottom: 20px;">
-                                • {{ sub }}
-                            </p>
-                            <div *ngFor="let sub of item.value" style="margin-bottom: 20px;">
-                                {{ logValue(sub.value) }}
-
-                                    <p *ngIf="isObject(sub);" style="margin-bottom: 20px;">
-                                        @if(item.key === 'acoes') {
-                                            <span *ngFor="let i of sub?.value">
-                                                {{ logValue(i ) }}
-                                                • {{ i }} : Descrição: {{ i.descricao }} - Exemplo: {{ sub.exemplo }}
-                                            </span>
-                                        }@else if( item.key === 'plano_smart' ) {
-                                            • {{ sub }} : {{ sub.value }}
-                                        }@else{
-                                            • {{ sub.key }} : {{ sub.value }}
-                                        }
-                                    </p>
-
-                                <p *ngIf="!isObject(sub);" style="margin-bottom: 20px;">
-                                     • {{ sub }}
-                                </p>
-                            </div>
-                        </ng-container> -->
-
-                        <!-- <ng-template *ngIf="!isArray(item.value);">
-                            {{ logValue(item.value) }}
-                            <p style="margin-bottom: 20px;">
-                                • {{ item }}
-                            </p>
-                        </ng-template> -->
-
-                    </div>
+                    </div> -->
                 </ng-container>
 
                 <div *ngIf="false">

@@ -33,7 +33,7 @@ class GeminiEvaluationController extends Controller
         'gemini-2.5-flash',
     ];
 
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(Request $request)
     {
         $payload = $request->validate([
             'mentee_name' => ['required', 'string'],
@@ -92,13 +92,13 @@ class GeminiEvaluationController extends Controller
         #echo $response->getBody();
 
         $data = json_decode($response->getBody(), true);
-        #dd($data);
         $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-        
-        if (! $text) {
+        //dd($text);
+
+        if (!$text) {
             return response()->json(['error' => 'Resposta inválida da API de IA.'], 502);
         }
-
+        return $text;
         $responseArray = json_decode($text, true);
 
         #dd($responseArray);
@@ -125,7 +125,7 @@ class GeminiEvaluationController extends Controller
         unset($responseArray["comentarios_pilares"]["Mindset e resiliência"]);
 
         $responseArray["comentarios_pilares"][] = ["key"=>"Equilíbrio vida-trabalho", "value"=>$responseArray["comentarios_pilares"]["Equilíbrio vida-trabalho"]];
-        unset($responseArray["comentarios_pilares"]["Equilíbrio vida-trabalho"]);        
+        unset($responseArray["comentarios_pilares"]["Equilíbrio vida-trabalho"]);
 
         if(isset($responseArray["plano_smart"]["alcancavel"])) {
             $responseArray["plano_smart"][] = ["key"=>"alcancavel", "value"=>$responseArray["plano_smart"]["alcancavel"]];
@@ -157,7 +157,7 @@ class GeminiEvaluationController extends Controller
         #dd(json_encode($responseArray)  );
 
         #dd(response()->json(['analysis' => $text]));
-        return response()->json(['analysis' => $responseArray]);         
+        return response()->json(['analysis' => $responseArray]);
     }
 
     public function __invokeGrok(Request $request): JsonResponse
@@ -477,7 +477,7 @@ class GeminiEvaluationController extends Controller
             $normalizedScores[$label] = (float) ($scores[$key] ?? 0);
         }
 
-        return implode("\n", [
+        /* return implode("\n", [
             'Mentorada: ' . trim($menteeName),
             'Tarefa: interpretar as notas da Roda da Vida com base exclusivamente na rubrica carregada.',
             'Scores informados: ' . json_encode($normalizedScores, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
@@ -512,6 +512,90 @@ class GeminiEvaluationController extends Controller
             '- JSON must be parseable by json_decode',
             '- Do not stop mid-JSON',
             '- Do not include markdown or explanations',
+        ]); */
+
+        return implode("\n", [
+            'Mentorada: ' . trim($menteeName),
+            'Tarefa: interpretar as notas da Roda da Vida com base exclusivamente na rubrica carregada.',
+            'Scores informados: ' . json_encode($normalizedScores, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+
+            'Objetivos:',
+            '- comentar individualmente cada pilar',
+            '- identificar a principal Área Alavanca',
+            '- explicar o impacto sistêmico da área prioritária',
+            '- gerar diagnóstico estratégico profundo',
+            '- sugerir ações práticas e aplicáveis',
+            '- propor direcionamentos de crescimento',
+            '- destacar pontos fortes',
+            '- gerar conclusão executiva inspiradora',
+
+            'Regras obrigatórias:',
+            '- usar exclusivamente a rubrica recebida no systemInstruction para análise dos pilares',
+            '- não inventar critérios ou áreas fora da rubrica',
+            '- manter linguagem executiva, estratégica, acolhedora e analítica',
+            '- escrever como uma consultora de negócios experiente',
+            '- personalizar a análise conforme os scores recebidos',
+            '- evitar respostas genéricas ou superficiais',
+            '- responder em texto corrido estruturado',
+            '- usar exatamente os títulos e estrutura do exemplo abaixo',
+            '- não usar markdown JSON',
+            '- não explicar o que está fazendo',
+            '- não escrever observações fora da estrutura',
+            '- responder apenas com o relatório final',
+
+            'EXEMPLO DE ESTRUTURA E TOM ESPERADO:',
+
+            <<<'EXEMPLO'
+            ### 1. ABERTURA ESTRATÉGICA
+
+            Observando o panorama do seu negócio, é evidente que estamos diante de uma operação com maturidade e fundamentos muito acima da média do mercado. Com pilares como Processos, Estratégia e Finanças operando em níveis de excelência e estabilidade, você construiu uma máquina com alta previsibilidade e segurança.
+
+            O cenário atual não é de caos ou sobrevivência, mas sim de um negócio estruturado que atingiu um teto de crescimento e agora pede uma nova configuração para escalar.
+
+            ### 2. ÁREA ALAVANCA PRIORITÁRIA
+
+            A área alavanca prioritária para o momento atual do negócio é Liderança e Equipe.
+
+            Ainda que outras áreas apresentem pontuação semelhante, essa dimensão foi priorizada por representar a engrenagem central que conecta estratégia, operação e execução prática. A evolução desta área possui o maior potencial de impacto sistêmico.
+
+            ### 3. DIAGNÓSTICO
+
+            A análise aponta fragilidades operacionais e desafios de execução que limitam o crescimento sustentável da empresa.
+
+            Apesar da existência de processos estruturados e clareza estratégica, a operação ainda depende excessivamente da liderança principal para funcionar adequadamente. Isso gera sobrecarga, reduz velocidade de crescimento e impede ganhos reais de escala.
+
+            ### 4. IMPACTO SISTÊMICO
+
+            A limitação nessa área cria efeitos indiretos em praticamente todos os demais pilares do negócio.
+
+            A dificuldade de delegação compromete produtividade, crescimento comercial, inovação e equilíbrio da liderança. Além disso, a ausência de autonomia operacional reduz a capacidade de expansão segura da empresa.
+
+            ### 5. DIRECIONAMENTO ESTRATÉGICO
+
+            O próximo nível de crescimento depende menos de criar novas estratégias e mais de fortalecer a capacidade de execução da operação.
+
+            O foco agora deve ser transformar conhecimento em cultura, fortalecer autonomia da equipe e estruturar uma operação menos dependente da liderança central.
+
+            ### 6. AÇÕES PRÁTICAS
+
+            - Definir responsáveis claros para cada processo estratégico
+            - Implementar reuniões semanais de alinhamento operacional
+            - Criar trilhas simples de treinamento interno
+            - Delegar progressivamente atividades críticas
+            - Desenvolver indicadores básicos de acompanhamento da equipe
+
+            ### 7. CONCLUSÃO EXECUTIVA
+
+            O negócio demonstra excelente potencial de crescimento e possui bases sólidas para expansão.
+
+            O principal desafio agora não está na estratégia, mas na capacidade operacional de sustentar o próximo ciclo de crescimento com autonomia, clareza e consistência.
+            EXEMPLO,
+
+                'IMPORTANTE:',
+                '- seguir exatamente esse nível de profundidade e qualidade',
+                '- adaptar completamente o conteúdo aos scores recebidos',
+                '- evitar repetir frases do exemplo literalmente',
+                '- manter naturalidade e personalização',
         ]);
     }
 }

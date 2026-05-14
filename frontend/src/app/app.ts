@@ -972,15 +972,16 @@ export class App {
                 this.status.set({ type: 'error', text: `Erro do servidor: ${response.status}` });
             }
 
-            const data = await response.json();
+            //const data = await response.json();
+            const data = await response.text();
 
             //console.log(data);
             //console.log('data.frases',data.analysis);
             //this.frases.set( JSON.parse(data.analysis) ) ;
 
-            this.frases.set( data.analysis ) ;
+            this.frases.set( data ) ;
 
-            //console.log(this.frases(), this.aiParsed());
+            //console.log(this.frases());
 
         } catch (error) {
             console.error('Erro ao chamar o backend:', error);
