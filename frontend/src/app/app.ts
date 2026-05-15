@@ -105,8 +105,8 @@ export class App {
     });
 
     private readonly appId = this.readRuntimeString('__app_id') || environment.appId || 'default-app-id';
-    //private readonly backendBaseUrl = 'http://127.0.0.1:8000';
-    private readonly backendBaseUrl = 'http://2.24.198.67.nip.io';
+    private readonly backendBaseUrl = 'http://127.0.0.1:8000';
+    //private readonly backendBaseUrl = 'http://2.24.198.67.nip.io';
 
     protected updateMenteeName(event: Event): void {
         const target = event.target as HTMLInputElement;
@@ -440,6 +440,8 @@ export class App {
 
         const frases = this.frases();
 
+
+
         if (!frases) {
             this.status.set({ type: 'error', text: 'Gere o parecer antes de exportar o PDF.' });
             return;
@@ -491,95 +493,56 @@ export class App {
             documentPdf.setFont('helvetica', 'normal');
             documentPdf.setFontSize(10);
 
-            // ================= FRASES =================
             if (frases) {
 
                 documentPdf.setFont('helvetica', 'normal');
+                documentPdf.setFontSize(10);
 
-                // ================= RESUMO =================
-                if (frases.scoreAlavancaArea && frases.menorNotaArea) {
+                const textoLimpo = frases
+                    .replace(/\n{3,}/g, '\n\n')
+                    .trim();
 
-                    const texto1 = `• Nesse contexto, foi identificada como área alavanca prioritária: ${frases.scoreAlavancaArea}`;
+                const paragrafos = textoLimpo.split('\n\n\n');
 
-                    //const texto2 = `• Embora a área de ${frases.menorNotaArea} apresente maior nível de criticidade ${frases.menorNota}, a área de ${frases.scoreAlavancaArea} foi priorizada por representar um ponto de intervenção mais viável e com maior capacidade de gerar impacto sistêmico no curto prazo. A atuação sobre essa dimensão tende a destravar outras áreas do negócio, permitindo ganhos estruturais mais rápidos e sustentáveis.`;
-                    const texto2 = `• ${frases.explicacao}`;
+                paragrafos.forEach((paragrafo: string) => {
 
-                    [texto1, texto2].forEach(texto => {
-                        const wrapped = documentPdf.splitTextToSize(texto, 180);
+                    if (!paragrafo.trim()) return;
 
-                        y = this.checkPageBreak(documentPdf, y + (wrapped.length * 2));
-                        documentPdf.text(wrapped, 14, y);
-                        y += wrapped.length * 6;
-                        y += 2;
+                    const wrapped = documentPdf.splitTextToSize(paragrafo, 180);
+
+                    wrapped.forEach((linha: string) => {
+
+                        y = this.checkPageBreak(documentPdf, y + 4);
+
+                        documentPdf.text(linha, 14, y);
+
+                        y += 4;
                     });
-                }
 
-                // ================= CONFIG =================;
-
-                const titulos: any = {
-                    base: 'Diagnóstico:',
-                    impacto: 'Impacto Sistêmico:',
-                    direcionamentos: 'Direcionamento Estratégico:',
-                    conclusoes: 'Conclusão:'
-                    // 'aberturas' propositalmente sem título
-                };
-
-                // ================= ORDENA =================
-                const entries = Object.entries(frases.frases || {})
-                    .sort(([a], [b]) => this.ordemFrases.indexOf(a) - this.ordemFrases.indexOf(b));
-
-                // ================= FRASES =================
-                entries.forEach(([key, value]: any) => {
-
-                    // ---- TÍTULO ----
-                    if (titulos[key]) {
-                        documentPdf.setFont('helvetica', 'bold');
-
-                        const titulo = titulos[key];
-                        const wrappedTitle = documentPdf.splitTextToSize(titulo, 180);
-
-                        y = this.checkPageBreak(documentPdf, y + (wrappedTitle.length * 3));
-                        documentPdf.text(wrappedTitle, 14, y);
-                        y += wrappedTitle.length * 7;
-
-                        y += 2;
-
-                        documentPdf.setFont('helvetica', 'normal');
-                    }
-
-                    // ---- CONTEÚDO ----
-                    if (Array.isArray(value)) {
-
-                        value.forEach((sub: any) => {
-                            const line = `• ${sub.texto}`;
-                            const wrapped = documentPdf.splitTextToSize(line, 180);
-
-                            y = this.checkPageBreak(documentPdf, y + (wrapped.length * 2));
-                            documentPdf.text(wrapped, 14, y);
-                            y += wrapped.length * 6;
-                            y += 2;
-                        });
-
-                    } else {
-
-                        const line = `• ${value?.texto}`;
-                        const wrapped = documentPdf.splitTextToSize(line, 180);
-
-                        documentPdf.text(wrapped, 14, y);
-                        y += wrapped.length * 6;
-                        y += 2;
-                    }
-
-                    // espaço entre blocos
-                    y += 3;
+                    y += 2; // espaço entre parágrafos
                 });
 
-                const text = '• Esta análise foi gerada com apoio de Inteligência Artificial e possui caráter auxiliar. As informações apresentadas não substituem a avaliação de um especialista e não devem ser consideradas como verdade absoluta ou utilizadas isoladamente para tomada de decisão.';
-                const wrapped = documentPdf.splitTextToSize(text, 180);
+                // OBS
+                y += 4;
 
-                documentPdf.text(wrapped, 14, y);
-                y += wrapped.length * 6;
-                y += 2;
+                documentPdf.setDrawColor(150);
+                documentPdf.line(14, y, 196, y);
+                y += 3;
+
+                const observacao = `Esta análise foi gerada com apoio de Inteligência Artificial e possui caráter auxiliar. As informações apresentadas
+não substituem a avaliação de um especialista e não devem ser consideradas como verdade absoluta ou utilizadas
+isoladamente para tomada de decisão.`;
+
+                const wrappedObs = documentPdf.splitTextToSize(observacao, 180);
+
+                y = this.checkPageBreak(documentPdf, y + (wrappedObs.length * 5));
+
+                documentPdf.setFont('helvetica', 'italic');
+                documentPdf.setFontSize(9);
+
+                documentPdf.text(wrappedObs, 14, y);
+
+                y += wrappedObs.length * 5;
             }
 
             // ================= FINAL =================
@@ -955,6 +918,8 @@ export class App {
             //     }),
             // });
 
+            this.status.set({ type: 'info', text: 'Enviando dados para a IA' });
+
             response = await fetch(`${this.backendBaseUrl}/api/gemini/evaluate`, {
             //response = await fetch(`${this.backendBaseUrl}/api/groq/evaluate`, {
                 method: 'POST',
@@ -975,17 +940,22 @@ export class App {
             //const data = await response.json();
             const data = await response.text();
 
-            //console.log(data);
-            //console.log('data.frases',data.analysis);
-            //this.frases.set( JSON.parse(data.analysis) ) ;
+            const textoLimpo = (data || '')
+                .replace(/^###\s*/gm, '')   // remove ###
+                .replace(/\*\*/g, '')       // remove **
+                .replace(/__/g, '')         // remove __
+                .replace(/`/g, '')          // remove `
+                .trim();
 
-            this.frases.set( data ) ;
+            this.frases.set( textoLimpo ) ;
 
             //console.log(this.frases());
 
         } catch (error) {
             console.error('Erro ao chamar o backend:', error);
             throw new Error('Falha de rede ao consultar o backend');
+        }finally {
+            this.status.set({ type: '', text: '' });
         }
     }
 

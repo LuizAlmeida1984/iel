@@ -546,37 +546,37 @@ class GeminiEvaluationController extends Controller
             'EXEMPLO DE ESTRUTURA E TOM ESPERADO:',
 
             <<<'EXEMPLO'
-            ### 1. ABERTURA ESTRATÉGICA
+            1. ABERTURA ESTRATÉGICA
 
             Observando o panorama do seu negócio, é evidente que estamos diante de uma operação com maturidade e fundamentos muito acima da média do mercado. Com pilares como Processos, Estratégia e Finanças operando em níveis de excelência e estabilidade, você construiu uma máquina com alta previsibilidade e segurança.
 
             O cenário atual não é de caos ou sobrevivência, mas sim de um negócio estruturado que atingiu um teto de crescimento e agora pede uma nova configuração para escalar.
 
-            ### 2. ÁREA ALAVANCA PRIORITÁRIA
+            2. ÁREA ALAVANCA PRIORITÁRIA
 
             A área alavanca prioritária para o momento atual do negócio é Liderança e Equipe.
 
             Ainda que outras áreas apresentem pontuação semelhante, essa dimensão foi priorizada por representar a engrenagem central que conecta estratégia, operação e execução prática. A evolução desta área possui o maior potencial de impacto sistêmico.
 
-            ### 3. DIAGNÓSTICO
+            3. DIAGNÓSTICO
 
             A análise aponta fragilidades operacionais e desafios de execução que limitam o crescimento sustentável da empresa.
 
             Apesar da existência de processos estruturados e clareza estratégica, a operação ainda depende excessivamente da liderança principal para funcionar adequadamente. Isso gera sobrecarga, reduz velocidade de crescimento e impede ganhos reais de escala.
 
-            ### 4. IMPACTO SISTÊMICO
+            4. IMPACTO SISTÊMICO
 
             A limitação nessa área cria efeitos indiretos em praticamente todos os demais pilares do negócio.
 
             A dificuldade de delegação compromete produtividade, crescimento comercial, inovação e equilíbrio da liderança. Além disso, a ausência de autonomia operacional reduz a capacidade de expansão segura da empresa.
 
-            ### 5. DIRECIONAMENTO ESTRATÉGICO
+            5. DIRECIONAMENTO ESTRATÉGICO
 
             O próximo nível de crescimento depende menos de criar novas estratégias e mais de fortalecer a capacidade de execução da operação.
 
             O foco agora deve ser transformar conhecimento em cultura, fortalecer autonomia da equipe e estruturar uma operação menos dependente da liderança central.
 
-            ### 6. AÇÕES PRÁTICAS
+            6. AÇÕES PRÁTICAS
 
             - Definir responsáveis claros para cada processo estratégico
             - Implementar reuniões semanais de alinhamento operacional
@@ -584,7 +584,7 @@ class GeminiEvaluationController extends Controller
             - Delegar progressivamente atividades críticas
             - Desenvolver indicadores básicos de acompanhamento da equipe
 
-            ### 7. CONCLUSÃO EXECUTIVA
+            7. CONCLUSÃO EXECUTIVA
 
             O negócio demonstra excelente potencial de crescimento e possui bases sólidas para expansão.
 

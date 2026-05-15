@@ -30,6 +30,7 @@
 
             <div *ngIf="status().text" class="status-message" [ngClass]="status().type">
                 {{ status().text }}
+                <div *ngIf="status().type === 'info' && status().text === 'Enviando dados para a IA'" class="spinner"></div>
             </div>
             <button type="button" class="primary-btn" [disabled]="loading()" (click)="generateReport()">
                 {{ loading() ? 'Gerando relatório...' : 'Gerar relatório' }}
