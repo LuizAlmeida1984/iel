@@ -426,15 +426,57 @@ export class App {
     } */
 
     protected checkPageBreak(doc: any, y: number): number {
-            const pageHeight = doc.internal.pageSize.height || 297;
-
-            if (y > pageHeight - 20) {
-                doc.addPage();
-                return 20; // topo da nova página
-            }
-
-            return y;
+        const pageHeight = doc.internal.pageSize.height || 297;
+        if (y > pageHeight - 20) {
+            doc.addPage();
+            return 20;
         }
+        return y;
+    }
+
+    private drawJustifiedLine(doc: any, line: string, x: number, y: number, maxWidth: number): void {
+        const words: string[] = line.trim().split(/\s+/).filter((w: string) => w.length > 0);
+        if (words.length <= 1) {
+            doc.text(line.trim(), x, y);
+            return;
+        }
+        const totalWordWidth = words.reduce((sum: number, w: string) => sum + doc.getTextWidth(w), 0);
+        const spaceWidth = (maxWidth - totalWordWidth) / (words.length - 1);
+        let cx = x;
+        words.forEach((word: string, i: number) => {
+            doc.text(word, cx, y);
+            cx += doc.getTextWidth(word) + (i < words.length - 1 ? spaceWidth : 0);
+        });
+    }
+
+    private drawParagraph(
+        doc: any, text: string, x: number, y: number,
+        maxWidth: number, lineHeight: number, indent: number = 5
+    ): number {
+        const firstLineWidth = maxWidth - indent;
+        const firstLine: string = (doc.splitTextToSize(text, firstLineWidth) as string[])[0] || '';
+        const firstWordCount = firstLine.trim().split(/\s+/).length;
+        const restWords = text.trim().split(/\s+/).slice(firstWordCount);
+        const restLines: string[] = restWords.length > 0
+            ? doc.splitTextToSize(restWords.join(' '), maxWidth) as string[]
+            : [];
+        const allLines = [firstLine, ...restLines];
+
+        allLines.forEach((line: string, i: number) => {
+            y = this.checkPageBreak(doc, y);
+            const isLast = i === allLines.length - 1;
+            const lineX = i === 0 ? x + indent : x;
+            const lineW = i === 0 ? firstLineWidth : maxWidth;
+            if (!isLast && allLines.length > 1) {
+                this.drawJustifiedLine(doc, line, lineX, y, lineW);
+            } else {
+                doc.text(line.trim(), lineX, y);
+            }
+            y += lineHeight;
+        });
+
+        return y;
+    }
 
     protected async exportPdf(): Promise<void> {
 
@@ -519,21 +561,15 @@ export class App {
                     .replace(/\n{3,}/g, '\n\n')
                     .trim();
 
-                const paragrafos = textoLimpo.split('\n\n\n');
+                const paragrafos = textoLimpo.split('\n\n');
 
                 paragrafos.forEach((paragrafo: string) => {
 
                     if (!paragrafo.trim()) return;
 
-                    const wrapped = documentPdf.splitTextToSize(paragrafo, 180);
-
-                    wrapped.forEach((linha: string) => {
-
+                    paragrafo.split('\n').filter((p: string) => p.trim()).forEach((bloco: string) => {
                         y = this.checkPageBreak(documentPdf, y + 4);
-
-                        documentPdf.text(linha, 14, y);
-
-                        y += 4;
+                        y = this.drawParagraph(documentPdf, bloco, 14, y, 180, 4, 5);
                     });
 
                     y += 2; // espaço entre parágrafos
@@ -550,16 +586,11 @@ export class App {
 não substituem a avaliação de um especialista e não devem ser consideradas como verdade absoluta ou utilizadas
 isoladamente para tomada de decisão.`;
 
-                const wrappedObs = documentPdf.splitTextToSize(observacao, 180);
-
-                y = this.checkPageBreak(documentPdf, y + (wrappedObs.length * 5));
-
                 documentPdf.setFont('helvetica', 'italic');
                 documentPdf.setFontSize(9);
 
-                documentPdf.text(wrappedObs, 14, y);
-
-                y += wrappedObs.length * 5;
+                y = this.checkPageBreak(documentPdf, y + 5);
+                y = this.drawParagraph(documentPdf, observacao.replace(/\n/g, ' '), 14, y, 180, 5, 5);
             }
 
             // ================= FINAL =================
