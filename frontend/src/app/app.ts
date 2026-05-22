@@ -456,20 +456,37 @@ export class App {
             const documentPdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
             const now = new Date();
+            const headerOffset = 28;
+
+            // ================= CABEÇALHO IEL =================
+            const logoBase64 = await this.loadLogoAsBase64();
+            if (logoBase64) {
+                documentPdf.addImage(logoBase64, 'PNG', 14, 5, 55, 17);
+            }
+
+            documentPdf.setFont('helvetica', 'bold');
+            documentPdf.setFontSize(12);
+            documentPdf.setTextColor(26, 59, 140);
+            documentPdf.text('Programa IEL Mentoria para Mulheres', 73, 14);
+            documentPdf.setTextColor(0, 0, 0);
+
+            documentPdf.setDrawColor(180, 180, 180);
+            documentPdf.line(14, 25, 196, 25);
+            documentPdf.setDrawColor(0, 0, 0);
 
             const reportTitle = `Parecer de Mentoria - ${this.menteeName() || 'Mentorada'}`;
 
             documentPdf.setFont('helvetica', 'bold');
             documentPdf.setFontSize(16);
-            documentPdf.text(reportTitle, 14, 18);
+            documentPdf.text(reportTitle, 14, 18 + headerOffset);
 
             documentPdf.setFont('helvetica', 'normal');
             documentPdf.setFontSize(10);
-            documentPdf.text(`Data: ${now.toLocaleDateString('pt-BR')}`, 14, 24);
+            documentPdf.text(`Data: ${now.toLocaleDateString('pt-BR')}`, 14, 24 + headerOffset);
 
-            documentPdf.text(`Média global: ${this.average()}/10`, 14, 29);
+            documentPdf.text(`Média global: ${this.average()}/10`, 14, 29 + headerOffset);
 
-            let y = 36;
+            let y = 36 + headerOffset;
 
             // ================= RADAR =================
             const radarImage = await this.createRadarImage();
@@ -482,7 +499,7 @@ export class App {
                 y += 90;
             }
 
-            this.drawScoreBars(documentPdf, 108, 44, 92, 80);
+            this.drawScoreBars(documentPdf, 108, 44 + headerOffset, 92, 80);
 
             // ================= TÍTULO =================
             documentPdf.setFont('helvetica', 'bold');
@@ -828,6 +845,21 @@ isoladamente para tomada de decisão.`;
             image.onerror = () => reject(new Error('Nao foi possivel processar o grafico para o PDF.'));
             image.src = source;
         });
+    }
+
+    private async loadLogoAsBase64(): Promise<string | undefined> {
+        try {
+            const response = await fetch('logo-iel.png');
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = () => reject(new Error('Logo nao encontrado.'));
+                reader.readAsDataURL(blob);
+            });
+        } catch {
+            return undefined;
+        }
     }
 
     private hexToRgb(hexColor: string): { r: number; g: number; b: number } {
