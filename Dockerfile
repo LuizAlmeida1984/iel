@@ -16,10 +16,11 @@ RUN apt-get update && apt-get install -y \
 
 RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd pdo_sqlite pdo_pgsql pgsql
 
-# Corrige diretórios do Nginx (não cria o arquivo PID no build)
+# Corrige diretórios do Nginx e remove o site padrão que exibe a página default
 RUN mkdir -p /var/run/nginx \
     && mkdir -p /var/log/nginx \
-    && chown -R www-data:www-data /var/run/nginx /var/log/nginx
+    && chown -R www-data:www-data /var/run/nginx /var/log/nginx \
+    && rm -f /etc/nginx/sites-enabled/default
 
 # Instala Composer
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
@@ -47,20 +48,10 @@ COPY backend/docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 RUN nginx -t
 
 
-#nodaemon=true
-
-#[program:php-fpm]
-#command=php-fpm
-
-#[program:nginx]
-#command=nginx -g "daemon off;"
-
-# Entrypoint para rodar php-fpm e nginx juntos e garantir que o PID não cause problemas
+# Entrypoint para rodar php-fpm e nginx juntos
 COPY backend/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 80
 EXPOSE 8080
 
 ENTRYPOINT ["/entrypoint.sh"]
-# force rebuild
