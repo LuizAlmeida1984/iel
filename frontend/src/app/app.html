@@ -7,7 +7,9 @@
                 <p>Roda da Vida Empreendedora</p>
             </div>
         </div>
-        <button type="button" class="ghost-btn" (click)="newSession()">Nova Sessão</button>
+        <div class="app-header__right">
+            <img src="logo-cni.png" alt="Logo CNI Liderança Feminina" class="app-header__logo-cni" />
+        </div>
     </header>
 
     <main class="layout">
@@ -95,10 +97,7 @@
                         <button type="button" class="ghost-invert" [disabled]="pdfLoading()" (click)="exportPdf()">
                             {{ pdfLoading() ? 'Gerando PDF...' : 'Gerar PDF' }}
                         </button>
-
-                        <button type="button" class="ghost-invert" (click)="copyToClipboard()">
-                            Copiar
-                        </button>
+                        <button type="button" class="ghost-invert" (click)="newSession()">Nova Sessão</button>
                     </div>
                     }
 
@@ -107,10 +106,7 @@
                             <button type="button" class="ghost-invert" [disabled]="pdfLoading()" (click)="exportPdf()">
                                 {{ pdfLoading() ? 'Gerando PDF...' : 'Gerar PDF' }}
                             </button>
-
-                            <!-- <button type="button" class="ghost-invert" (click)="copyToClipboard()">
-                                Copiar
-                            </button> -->
+                            <button type="button" class="ghost-invert" (click)="newSession()">Nova Sessão</button>
                         </div>
                     }
                 </div>
@@ -426,5 +422,6 @@
             </div>
 
         </section>
+
     </main>
 </div>

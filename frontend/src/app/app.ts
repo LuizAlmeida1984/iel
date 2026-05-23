@@ -434,6 +434,19 @@ export class App {
         return y;
     }
 
+    private addPageNumbers(doc: any): void {
+        const total = doc.internal.getNumberOfPages();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        for (let i = 1; i <= total; i++) {
+            doc.setPage(i);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`${i}/${total}`, 196, pageHeight - 8, { align: 'right' });
+        }
+        doc.setTextColor(0, 0, 0);
+    }
+
     private drawJustifiedLine(doc: any, line: string, x: number, y: number, maxWidth: number): void {
         const words: string[] = line.trim().split(/\s+/).filter((w: string) => w.length > 0);
         if (words.length <= 1) {
@@ -498,22 +511,46 @@ export class App {
             const documentPdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
             const now = new Date();
-            const headerOffset = 28;
+            // CNI h=38mm → termina em y=1+38=39 → separador y=42 → offset=46
+            const headerOffset = 46;
 
-            // ================= CABEÇALHO IEL =================
-            const logoBase64 = await this.loadLogoAsBase64();
+            // ================= CABEÇALHO =================
+            const [logoBase64, cniLogoBase64] = await Promise.all([
+                this.loadLogoAsBase64(),
+                this.loadCniLogoAsBase64(),
+            ]);
+
+            // IEL logo — esquerda (ratio 3.24:1, h=17mm → w≈55mm), centralizado na altura do CNI
             if (logoBase64) {
-                documentPdf.addImage(logoBase64, 'PNG', 14, 5, 55, 17);
+                documentPdf.addImage(logoBase64, 'PNG', 14, 12, 55, 17);
             }
 
+            // CNI logo — direita, proporcional ao HTML (80px/36px ≈ 2.2× IEL)
+            // ratio 2.14:1, h=38mm → w≈81mm, x = 196-81 = 115
+            if (cniLogoBase64) {
+                documentPdf.addImage(cniLogoBase64, 'PNG', 115, 1, 81, 38);
+            }
+
+            // Título (quebra se necessário dentro dos 37mm disponíveis entre logos)
             documentPdf.setFont('helvetica', 'bold');
-            documentPdf.setFontSize(12);
+            documentPdf.setFontSize(10);
             documentPdf.setTextColor(26, 59, 140);
-            documentPdf.text('Programa IEL Mentoria para Mulheres', 73, 14);
+            const titleLines = documentPdf.splitTextToSize('Programa IEL Mentoria para Mulheres', 37) as string[];
+            titleLines.forEach((line: string, i: number) => {
+                documentPdf.text(line, 73, 14 + i * 5);
+            });
+
+            // Subtítulo — uppercase cinza, mesmo estilo do HTML
+            documentPdf.setFont('helvetica', 'bold');
+            documentPdf.setFontSize(7);
+            documentPdf.setTextColor(148, 163, 184);
+            const subtitleY = 14 + titleLines.length * 5 + 2;
+            documentPdf.text('RODA DA VIDA EMPREENDEDORA', 73, subtitleY);
             documentPdf.setTextColor(0, 0, 0);
 
+            // Linha separadora abaixo do maior elemento (CNI termina em y=39)
             documentPdf.setDrawColor(180, 180, 180);
-            documentPdf.line(14, 25, 196, 25);
+            documentPdf.line(14, 42, 196, 42);
             documentPdf.setDrawColor(0, 0, 0);
 
             const reportTitle = `Parecer de Mentoria - ${this.menteeName() || 'Mentorada'}`;
@@ -594,6 +631,8 @@ isoladamente para tomada de decisão.`;
             }
 
             // ================= FINAL =================
+            this.addPageNumbers(documentPdf);
+
             const fileDate = now.toISOString().slice(0, 10);
 
             const safeName = (this.menteeName() || 'mentorada')
@@ -878,19 +917,30 @@ isoladamente para tomada de decisão.`;
         });
     }
 
-    private async loadLogoAsBase64(): Promise<string | undefined> {
-        try {
-            const response = await fetch('logo-iel.png');
-            const blob = await response.blob();
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.onerror = () => reject(new Error('Logo nao encontrado.'));
-                reader.readAsDataURL(blob);
-            });
-        } catch {
-            return undefined;
-        }
+    private loadImageAsBase64(src: string): Promise<string | undefined> {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) { resolve(undefined); return; }
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/png'));
+            };
+            img.onerror = () => resolve(undefined);
+            img.src = src;
+        });
+    }
+
+    private loadLogoAsBase64(): Promise<string | undefined> {
+        return this.loadImageAsBase64('logo-iel.png');
+    }
+
+    private loadCniLogoAsBase64(): Promise<string | undefined> {
+        return this.loadImageAsBase64('logo-cni.png');
     }
 
     private hexToRgb(hexColor: string): { r: number; g: number; b: number } {

@@ -29,8 +29,21 @@
 		gap: 0.75rem;
 	}
 
+	&__right {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.4rem;
+	}
+
 	&__logo {
 		height: 36px;
+		width: auto;
+		object-fit: contain;
+	}
+
+	&__logo-cni {
+		height: 80px;
 		width: auto;
 		object-fit: contain;
 	}
@@ -58,7 +71,7 @@
 	margin: 0 auto;
 	padding: 1.5rem;
 	display: grid;
-	grid-template-columns: minmax(290px, 340px) minmax(420px, 1fr) minmax(300px, 360px);
+	grid-template-columns: minmax(290px, 340px) minmax(420px, 1fr);
 	gap: 1.5rem;
 }
 
@@ -317,6 +330,7 @@
 	gap: 0.45rem;
 }
 
+
 @media (max-width: 1200px) {
 	.layout {
 		grid-template-columns: 1fr;
@@ -325,6 +339,7 @@
 	.history-list {
 		max-height: 320px;
 	}
+
 }
 
 .spinner {
