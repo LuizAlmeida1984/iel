@@ -1047,7 +1047,15 @@ isoladamente para tomada de decisão.`;
             });
 
             if (!response.ok) {
-                this.status.set({ type: 'error', text: `Erro do servidor: ${response.status}` });
+                const errText = await response.text();
+                let errMsg = `Erro do servidor: ${response.status}`;
+                try {
+                    const errJson = JSON.parse(errText);
+                    if (errJson.error) errMsg = String(errJson.error);
+                    else if (errJson.message) errMsg = String(errJson.message);
+                } catch { /* mantém mensagem padrão */ }
+                this.status.set({ type: 'error', text: errMsg });
+                return;
             }
 
             //const data = await response.json();
@@ -1061,8 +1069,6 @@ isoladamente para tomada de decisão.`;
                 .trim();
 
             this.frases.set( textoLimpo ) ;
-
-            //console.log(this.frases());
 
         } catch (error) {
             console.error('Erro ao chamar o backend:', error);

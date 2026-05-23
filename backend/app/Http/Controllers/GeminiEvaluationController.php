@@ -79,21 +79,34 @@ class GeminiEvaluationController extends Controller
             ]
         ];
 
-        $client = new Client(['verify' => false, 'timeout' => 60, 'connect_timeout' => 15  ]);
+        $client = new Client(['verify' => false, 'timeout' => 60, 'connect_timeout' => 15]);
 
-        $response = $client->post($url, [
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'X-goog-api-key' => $apiKey,
-            ],
-            'json' => $data
-        ]);
-
-        #echo $response->getBody();
+        try {
+            $response = $client->post($url, [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'X-goog-api-key' => $apiKey,
+                ],
+                'json' => $data,
+            ]);
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $body = json_decode((string) $e->getResponse()->getBody(), true);
+            $message = $body['error']['message'] ?? $e->getMessage();
+            return response()->json([
+                'error' => 'Erro na API do Gemini: ' . $message,
+            ], 502);
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            return response()->json([
+                'error' => 'Falha de conexão com a API do Gemini: ' . $e->getMessage(),
+            ], 502);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => 'Erro inesperado ao chamar a IA: ' . $e->getMessage(),
+            ], 500);
+        }
 
         $data = json_decode($response->getBody(), true);
         $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-        //dd($text);
 
         if (!$text) {
             return response()->json(['error' => 'Resposta inválida da API de IA.'], 502);
