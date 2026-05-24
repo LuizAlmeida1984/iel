@@ -42,6 +42,11 @@ Thumbs.db
 *.swp
 *.swo
 
+# Arquivos de teste com credenciais (nunca commitar)
+backend/teste_*.php
+backend/test_*.php
+backend/debug_*.php
+
 # Testes
 /coverage/
 
