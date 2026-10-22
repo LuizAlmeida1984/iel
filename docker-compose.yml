@@ -6,6 +6,6 @@ services:
     container_name: iel-app
     restart: always
     ports:
-      - "80:80"
+      - "8082:80"
     env_file:
       - backend/.env

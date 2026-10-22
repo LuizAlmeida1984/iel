@@ -79,37 +79,31 @@ class GeminiEvaluationController extends Controller
             ]
         ];
 
-        $client = new Client(['verify' => false, 'timeout' => 60, 'connect_timeout' => 15]);
+        // Cascata de provedores: tenta o Groq e, em QUALQUER falha, cai para o Gemini.
+        $text = $this->callGroqRaw($systemInstruction, $prompt);
 
-        try {
-            $response = $client->post($url, [
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                    'X-goog-api-key' => $apiKey,
-                ],
-                'json' => $data,
-            ]);
-        } catch (\GuzzleHttp\Exception\ClientException $e) {
-            $body = json_decode((string) $e->getResponse()->getBody(), true);
-            $message = $body['error']['message'] ?? $e->getMessage();
-            return response()->json([
-                'error' => 'Erro na API do Gemini: ' . $message,
-            ], 502);
-        } catch (\GuzzleHttp\Exception\RequestException $e) {
-            return response()->json([
-                'error' => 'Falha de conexão com a API do Gemini: ' . $e->getMessage(),
-            ], 502);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'error' => 'Erro inesperado ao chamar a IA: ' . $e->getMessage(),
-            ], 500);
+        // Fallback: Gemini, retornando o mesmo texto cru.
+        if (! $text) {
+            try {
+                $client = new Client(['verify' => false, 'timeout' => 60, 'connect_timeout' => 15]);
+                $response = $client->post($url, [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'X-goog-api-key' => $apiKey,
+                    ],
+                    'json' => $data,
+                ]);
+                $decoded = json_decode($response->getBody(), true);
+                $text = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? null;
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Gemini tambem falhou no rodadavida. Erro: ' . $e->getMessage());
+            }
         }
 
-        $data = json_decode($response->getBody(), true);
-        $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-
-        if (!$text) {
-            return response()->json(['error' => 'Resposta inválida da API de IA.'], 502);
+        if (! $text) {
+            return response()->json([
+                'error' => 'Servico de IA temporariamente indisponivel. Tente novamente em instantes.',
+            ], 503);
         }
         return $text;
         $responseArray = json_decode($text, true);
@@ -451,6 +445,52 @@ class GeminiEvaluationController extends Controller
             'details' => $lastError,
         ], 502);
     } */
+
+    /**
+     * Fallback: chama a API do Groq (OpenAI-compatible) e retorna o texto cru gerado
+     * (ou null em caso de falha), no mesmo formato que o fluxo Gemini de __invoke.
+     */
+    private function callGroqRaw(string $systemInstruction, string $prompt): ?string
+    {
+        $apiKey = trim((string) env('GROQ_API_KEY', ''));
+
+        if ($apiKey === '') {
+            \Illuminate\Support\Facades\Log::error('Fallback Groq indisponivel: GROQ_API_KEY nao configurada.');
+            return null;
+        }
+
+        $model = env('GROQ_MODEL', 'openai/gpt-oss-120b');
+
+        try {
+            $response = Http::withOptions([
+                'timeout' => 60,
+                'connect_timeout' => 15,
+                'verify' => false,
+            ])->acceptJson()->withHeaders([
+                'Authorization' => "Bearer {$apiKey}",
+                'Content-Type' => 'application/json',
+            ])->post('https://api.groq.com/openai/v1/chat/completions', [
+                'model' => $model,
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemInstruction],
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+                'temperature' => 0.2,
+            ]);
+        } catch (Throwable $exception) {
+            \Illuminate\Support\Facades\Log::error('Fallback Groq: falha de conexao. ' . $exception->getMessage());
+            return null;
+        }
+
+        if (! $response->successful()) {
+            \Illuminate\Support\Facades\Log::error('Fallback Groq falhou: [' . $response->status() . '] ' . $response->body());
+            return null;
+        }
+
+        $content = data_get($response->json(), 'choices.0.message.content');
+
+        return is_string($content) && trim($content) !== '' ? $content : null;
+    }
 
     private function buildSystemInstruction(): string
     {
